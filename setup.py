@@ -3,14 +3,15 @@ from setuptools.command.install import install as _install
 from setuptools.command.bdist_egg import bdist_egg as _bdist_egg
 from setuptools import setup, find_packages, Command
 import inspect
-import ssl
 import os
 import zipfile
 import urllib.request
 import sys
 import shutil
+import warnings
+import platform
 
-from counterpartylib.lib import config
+from aspirelib.lib import config
 
 CURRENT_VERSION = config.VERSION_STRING
 APSW_VERSION = "3.8.7.3-r1"
@@ -18,12 +19,15 @@ APSW_SHORT_VERSION = APSW_VERSION.replace('-r1', '')
 
 # NOTE: Why we don’t use the the PyPi package:
 # <https://github.com/rogerbinns/apsw/issues/66#issuecomment-31310364>
+
+
 class install_apsw(Command):
     description = "Install APSW %s with the appropriate version of SQLite" % APSW_VERSION
     user_options = []
 
     def initialize_options(self):
         pass
+
     def finalize_options(self):
         pass
 
@@ -60,13 +64,13 @@ class install_apsw(Command):
         print("install apsw.")
         install_command = ('cd apsw-{version} && {executable} '
           'setup.py fetch --version={shortversion} --all build '
-          '--enable-all-extensions install'.format(executable=executable, version=APSW_VERSION, shortversion=APSW_SHORT_VERSION)
-        )
+          '--enable-all-extensions install'.format(executable=executable, version=APSW_VERSION, shortversion=APSW_SHORT_VERSION))
         os.system(install_command)
 
         print("clean files.")
         shutil.rmtree('apsw-%s' % APSW_VERSION)
         os.remove('apsw-%s.zip' % APSW_VERSION)
+
 
 class install_serpent(Command):
     description = "Install Ethereum Serpent"
@@ -74,6 +78,7 @@ class install_serpent(Command):
 
     def initialize_options(self):
         pass
+
     def finalize_options(self):
         pass
 
@@ -83,7 +88,7 @@ class install_serpent(Command):
             print('To complete the installation you have to install Serpent: https://github.com/ethereum/serpent')
             return
 
-        SERPENT_REPO =  "ethereum"
+        SERPENT_REPO = "ethereum"
         SERPENT_COMMIT = "0ec2042c71edf43ef719ea6268d4206a2424d5bb"
 
         print("downloading serpent.")
@@ -103,27 +108,29 @@ class install_serpent(Command):
         shutil.rmtree('serpent-{}'.format(SERPENT_COMMIT))
         os.remove('serpent.zip')
 
+
 class move_old_db(Command):
     description = "Move database from old to new default data directory"
     user_options = []
 
     def initialize_options(self):
         pass
+
     def finalize_options(self):
         pass
 
     def run(self):
         import appdirs
 
-        old_data_dir = appdirs.user_config_dir(appauthor='Counterparty', appname='counterpartyd', roaming=True)
-        old_database = os.path.join(old_data_dir, 'counterpartyd.9.db')
-        old_database_testnet = os.path.join(old_data_dir, 'counterpartyd.9.testnet.db')
+        old_data_dir = appdirs.user_config_dir(appauthor='Aspire', appname='aspired', roaming=True)
+        old_database = os.path.join(old_data_dir, 'aspired.9.db')
+        old_database_testnet = os.path.join(old_data_dir, 'aspired.9.testnet.db')
 
         new_data_dir = appdirs.user_data_dir(appauthor=config.XCP_NAME, appname=config.APP_NAME, roaming=True)
         new_database = os.path.join(new_data_dir, '{}.db'.format(config.APP_NAME))
         new_database_testnet = os.path.join(new_data_dir, '{}.testnet.db'.format(config.APP_NAME))
 
-        # User have an old version of `counterpartyd`
+        # User have an old version of `aspired`
         if os.path.exists(old_data_dir):
             # Move database
             if not os.path.exists(new_data_dir):
@@ -138,11 +145,13 @@ class move_old_db(Command):
                         print('Copy {} to {}'.format(src_file, dest_file))
                         shutil.copy(src_file, dest_file)
 
+
 def post_install(cmd, install_serpent=False):
     cmd.run_command('install_apsw')
     if install_serpent:
         cmd.run_command('install_serpent')
     cmd.run_command('move_old_db')
+
 
 class install(_install):
     user_options = _install.user_options + [
@@ -154,7 +163,7 @@ class install(_install):
         self.with_serpent = False
         _install.initialize_options(self)
 
-    #Some of this code taken from https://bitbucket.org/pypa/setuptools/src/4ce518784af886e6977fa2dbe58359d0fe161d0d/setuptools/command/install.py?at=default&fileviewer=file-view-default
+    # Some of this code taken from https://bitbucket.org/pypa/setuptools/src/4ce518784af886e6977fa2dbe58359d0fe161d0d/setuptools/command/install.py?at=default&fileviewer=file-view-default
     @staticmethod
     def _called_from_setup(run_frame):
         """
@@ -177,11 +186,8 @@ class install(_install):
         caller, = res[:1]
         info = inspect.getframeinfo(caller)
         caller_module = caller.f_globals.get('__name__', '')
-        return (
-            caller_module == 'distutils.dist'
-            and info.function == 'run_commands'
-        )
-        
+        return caller_module == 'distutils.dist' and info.function == 'run_commands'
+
     def run(self):
         # Explicit request for old-style install?  Just do it
         if self.old_and_unmanageable or self.single_version_externally_managed:
@@ -196,10 +202,12 @@ class install(_install):
             self.do_egg_install()
         self.execute(post_install, (self, self.with_serpent), msg="Running post install tasks")
 
+
 class bdist_egg(_bdist_egg):
     def run(self):
         _bdist_egg.run(self)
         self.execute(post_install, (self, False), msg="Running post install tasks")
+
 
 required_packages = [
     'appdirs==1.4.0',
@@ -222,16 +230,16 @@ required_packages = [
 ]
 
 setup_options = {
-    'name': 'counterparty-lib',
+    'name': 'aspire-lib',
     'version': CURRENT_VERSION,
-    'author': 'Counterparty Developers',
-    'author_email': 'dev@counterparty.io',
-    'maintainer': 'Counterparty Developers',
-    'maintainer_email': 'dev@counterparty.io',
-    'url': 'http://counterparty.io',
+    'author': 'Aspire Developers',
+    'author_email': 'admin@aspirecrypto.com',
+    'maintainer': 'Aspire Developers',
+    'maintainer_email': 'admin@aspirecrypto.com',
+    'url': 'http://aspirecrypto.com',
     'license': 'MIT',
-    'description': 'Counterparty Protocol Reference Implementation',
-    'keywords': 'counterparty, bitcoin',
+    'description': 'Aspire Protocol Reference Implementation',
+    'keywords': 'aspire, aspiregas',
     'classifiers': [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
@@ -245,8 +253,8 @@ setup_options = {
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Distributed Computing"
     ],
-    'download_url': 'https://github.com/CounterpartyXCP/counterparty-lib/releases/tag/' + CURRENT_VERSION,
-    'provides': ['counterpartylib'],
+    'download_url': 'https://github.com/AspireOrg/aspire-lib/releases/tag/' + CURRENT_VERSION,
+    'provides': ['aspirelib'],
     'packages': find_packages(),
     'zip_safe': False,
     'setup_requires': ['appdirs', 'setuptools-markdown'],
