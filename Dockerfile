@@ -1,4 +1,4 @@
-FROM aspireorg/base
+FROM aspireorg/federatednode
 
 MAINTAINER Aspire Developers <admin@aspirecrypto.com>
 
