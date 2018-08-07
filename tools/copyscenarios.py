@@ -4,7 +4,7 @@ import os
 import re
 import shutil
 
-DIR = "counterpartylib/test/fixtures/scenarios"
+DIR = "aspirelib/test/fixtures/scenarios"
 REGEX = r"^(?P<name>.*)\.new(?P<ext>\..*)$"
 
 for file in sorted(os.listdir(DIR)):
