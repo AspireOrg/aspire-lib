@@ -82,7 +82,7 @@ def initialise(*args, **kwargs):
 
 
 def initialise_config(database_file=None, log_file=None, api_log_file=None,
-                testnet=False, testcoin=False,
+                testnet=False,
                 backend_name=None, backend_connect=None, backend_port=None,
                 backend_user=None, backend_password=None,
                 backend_ssl=False, backend_ssl_no_verify=False,
@@ -110,17 +110,9 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
     else:
         config.TESTNET = False
 
-    # testcoin
-    if testcoin:
-        config.TESTCOIN = testcoin
-    else:
-        config.TESTCOIN = False
-
     network = ''
     if config.TESTNET:
         network += '.testnet'
-    if config.TESTCOIN:
-        network += '.testcoin'
 
     # Database
     if database_file:
@@ -261,15 +253,9 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.RPC_PORT = rpc_port
     else:
         if config.TESTNET:
-            if config.TESTCOIN:
-                config.RPC_PORT = config.DEFAULT_RPC_PORT_TESTNET + 1
-            else:
-                config.RPC_PORT = config.DEFAULT_RPC_PORT_TESTNET
+            config.RPC_PORT = config.DEFAULT_RPC_PORT_TESTNET
         else:
-            if config.TESTCOIN:
-                config.RPC_PORT = config.DEFAULT_RPC_PORT + 1
-            else:
-                config.RPC_PORT = config.DEFAULT_RPC_PORT
+            config.RPC_PORT = config.DEFAULT_RPC_PORT
     try:
         config.RPC_PORT = int(config.RPC_PORT)
         if not (int(config.RPC_PORT) > 1 and int(config.RPC_PORT) < 65535):
@@ -312,48 +298,27 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.FORCE = False
 
     # Encoding
-    if config.TESTCOIN:
-        config.PREFIX = b'XX'                   # 2 bytes (possibly accidentally created)
-    else:
-        config.PREFIX = b'CNTRPRTY'             # 8 bytes
+    config.PREFIX = b'CNTRPRTY'             # 8 bytes
 
     # (more) Testnet
     if config.TESTNET:
         config.MAGIC_BYTES = config.MAGIC_BYTES_TESTNET
-        if config.TESTCOIN:
-            config.ADDRESSVERSION = config.ADDRESSVERSION_TESTNET
-            config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_TESTNET
-            config.BLOCK_FIRST = config.BLOCK_FIRST_TESTNET_TESTCOIN
-            config.BURN_START = config.BURN_START_TESTNET_TESTCOIN
-            config.BURN_END = config.BURN_END_TESTNET_TESTCOIN
-            config.UNSPENDABLE = config.UNSPENDABLE_TESTNET
-            config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
-        else:
-            config.ADDRESSVERSION = config.ADDRESSVERSION_TESTNET
-            config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_TESTNET
-            config.BLOCK_FIRST = config.BLOCK_FIRST_TESTNET
-            config.BURN_START = config.BURN_START_TESTNET
-            config.BURN_END = config.BURN_END_TESTNET
-            config.UNSPENDABLE = config.UNSPENDABLE_TESTNET
-            config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
+        config.ADDRESSVERSION = config.ADDRESSVERSION_TESTNET
+        config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_TESTNET
+        config.BLOCK_FIRST = config.BLOCK_FIRST_TESTNET
+        config.BURN_START = config.BURN_START_TESTNET
+        config.BURN_END = config.BURN_END_TESTNET
+        config.UNSPENDABLE = config.UNSPENDABLE_TESTNET
+        config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
     else:
         config.MAGIC_BYTES = config.MAGIC_BYTES_MAINNET
-        if config.TESTCOIN:
-            config.ADDRESSVERSION = config.ADDRESSVERSION_MAINNET
-            config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_MAINNET
-            config.BLOCK_FIRST = config.BLOCK_FIRST_MAINNET_TESTCOIN
-            config.BURN_START = config.BURN_START_MAINNET_TESTCOIN
-            config.BURN_END = config.BURN_END_MAINNET_TESTCOIN
-            config.UNSPENDABLE = config.UNSPENDABLE_MAINNET
-            config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
-        else:
-            config.ADDRESSVERSION = config.ADDRESSVERSION_MAINNET
-            config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_MAINNET
-            config.BLOCK_FIRST = config.BLOCK_FIRST_MAINNET
-            config.BURN_START = config.BURN_START_MAINNET
-            config.BURN_END = config.BURN_END_MAINNET
-            config.UNSPENDABLE = config.UNSPENDABLE_MAINNET
-            config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
+        config.ADDRESSVERSION = config.ADDRESSVERSION_MAINNET
+        config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_MAINNET
+        config.BLOCK_FIRST = config.BLOCK_FIRST_MAINNET
+        config.BURN_START = config.BURN_START_MAINNET
+        config.BURN_END = config.BURN_END_MAINNET
+        config.UNSPENDABLE = config.UNSPENDABLE_MAINNET
+        config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
 
     # Misc
     config.REQUESTS_TIMEOUT = requests_timeout

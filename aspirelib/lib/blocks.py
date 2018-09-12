@@ -912,7 +912,7 @@ def list_tx(db, block_hash, block_index, block_time, tx_hash, tx_index, tx_hex=N
     source, destination, btc_amount, fee, data = get_tx_info(tx_hex)
 
     # For mempool
-    if block_hash == None:
+    if block_hash is None:
         block_hash = config.MEMPOOL_BLOCK_HASH
         block_index = config.MEMPOOL_BLOCK_INDEX
     else:

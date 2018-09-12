@@ -213,7 +213,7 @@ def setup_function(function):
     server.initialise(database_file=tempfile.gettempdir()+'/aspire.unittest.db',
                       rpc_port=9999, rpc_password='pass',
                       backend_password='pass',
-                      testnet=True, testcoin=False)
+                      testnet=True)
     try:
         os.remove(config.DATABASE)
     except:

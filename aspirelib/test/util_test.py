@@ -39,7 +39,6 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 # TODO: This should grab the correct backend port and password, when used for, e.g., saverawtransactions.
 ASPIRED_OPTIONS = {
-    'testcoin': False,
     'rpc_port': 9999,
     'rpc_password': 'pass',
     'backend_port': 19874,
