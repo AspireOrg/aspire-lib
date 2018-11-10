@@ -2,10 +2,8 @@
 
 import binascii
 import json
-import pprint
 import struct
 import logging
-logger = logging.getLogger(__name__)
 
 from aspirelib.lib import config
 from aspirelib.lib import exceptions
@@ -13,9 +11,12 @@ from aspirelib.lib import util
 from aspirelib.lib import log
 from aspirelib.lib import message_type
 
+logger = logging.getLogger(__name__)
+
 FORMAT = '>32s32s'
 LENGTH = 32 + 32
 ID = 11
+
 
 def initialise(db):
     cursor = db.cursor()
@@ -40,7 +41,9 @@ def initialise(db):
     cursor.execute('''CREATE INDEX IF NOT EXISTS
                       destination_idx ON btcpays (destination)
                    ''')
-def validate (db, source, order_match_id, block_index):
+
+
+def validate(db, source, order_match_id, block_index):
     problems = []
     order_match = None
 
@@ -73,25 +76,27 @@ def validate (db, source, order_match_id, block_index):
             problems.append('incorrect source address')
         destination = order_match['tx0_address']
         btc_quantity = order_match['backward_quantity']
-        escrowed_asset  = order_match['forward_asset']
+        escrowed_asset = order_match['forward_asset']
         escrowed_quantity = order_match['forward_quantity']
     elif order_match['forward_asset'] == config.BTC:
         if source != order_match['tx0_address'] and not (block_index >= 313900 or config.TESTNET):  # Protocol change.
             problems.append('incorrect source address')
         destination = order_match['tx1_address']
         btc_quantity = order_match['forward_quantity']
-        escrowed_asset  = order_match['backward_asset']
+        escrowed_asset = order_match['backward_asset']
         escrowed_quantity = order_match['backward_quantity']
     else:
         assert False
 
     return destination, btc_quantity, escrowed_asset, escrowed_quantity, order_match, problems
 
-def compose (db, source, order_match_id):
+
+def compose(db, source, order_match_id):
     tx0_hash, tx1_hash = util.parse_id(order_match_id)
 
     destination, btc_quantity, escrowed_asset, escrowed_quantity, order_match, problems = validate(db, source, order_match_id, util.CURRENT_BLOCK_INDEX)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     # Warn if down to the wire.
     time_left = order_match['match_expire_index'] - util.CURRENT_BLOCK_INDEX
@@ -105,7 +110,8 @@ def compose (db, source, order_match_id):
     data += struct.pack(FORMAT, tx0_hash_bytes, tx1_hash_bytes)
     return (source, [(destination, btc_quantity)], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     cursor = db.cursor()
 
     # Unpack message.
@@ -116,14 +122,13 @@ def parse (db, tx, message):
         tx0_hash, tx1_hash = binascii.hexlify(tx0_hash_bytes).decode('utf-8'), binascii.hexlify(tx1_hash_bytes).decode('utf-8')
         order_match_id = util.make_id(tx0_hash, tx1_hash)
         status = 'valid'
-    except (exceptions.UnpackError, struct.error) as e:
+    except exceptions.UnpackError, struct.error:
         tx0_hash, tx1_hash, order_match_id = None, None, None
         status = 'invalid: could not unpack'
 
     if status == 'valid':
         destination, btc_quantity, escrowed_asset, escrowed_quantity, order_match, problems = validate(db, tx['source'], order_match_id, tx['block_index'])
         if problems:
-            order_match = None
             status = 'invalid: ' + '; '.join(problems)
 
     if status == 'valid':
@@ -139,7 +144,7 @@ def parse (db, tx, message):
                 'status': 'completed',
                 'order_match_id': order_match_id
             }
-            sql='update order_matches set status = :status where id = :order_match_id'
+            sql = 'update order_matches set status = :status where id = :order_match_id'
             cursor.execute(sql, bindings)
             log.message(db, tx['block_index'], 'update', 'order_matches', bindings)
 
@@ -160,8 +165,6 @@ def parse (db, tx, message):
     else:
         logger.warn("Not storing [btcpay] tx [%s]: %s" % (tx['tx_hash'], status))
         logger.debug("Bindings: %s" % (json.dumps(bindings), ))
-
-
     cursor.close()
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
