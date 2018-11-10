@@ -5,14 +5,17 @@
 import struct
 import binascii
 
-from aspirelib.lib import (config, exceptions, util, message_type)
+from aspirelib.lib import config
+from aspirelib.lib import util
+from aspirelib.lib import message_type
 from . import execute
 
 FORMAT = '>QQQ'
 LENGTH = 8 + 8 + 8
 ID = 100
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
 
     # Contracts
@@ -33,7 +36,8 @@ def initialise (db):
                       tx_hash_idx ON contracts (tx_hash)
                    ''')
 
-def compose (db, source, gasprice, startgas, endowment, code_hex):
+
+def compose(db, source, gasprice, startgas, endowment, code_hex):
     if not config.TESTNET:  # TODO
         return
 
@@ -44,14 +48,14 @@ def compose (db, source, gasprice, startgas, endowment, code_hex):
     return (source, [], data)
 
 
-def parse (db, tx, message):
+def parse(db, tx, message):
     if not config.TESTNET:  # TODO
         return
 
     try:
         gasprice, startgas, endowment = struct.unpack(FORMAT, message[:LENGTH])
     except struct.error:
-        gasprice, startgas, endowment = 0, 0, 0 # TODO: Is this ideal
+        gasprice, startgas, endowment = 0, 0, 0  # TODO: Is this ideal
 
     code = util.hexlify(message[LENGTH:])
     source, destination, data = execute.compose(db, tx['source'], '', gasprice, startgas, endowment, code)
