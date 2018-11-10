@@ -5,16 +5,23 @@
 import struct
 import binascii
 import logging
-logger = logging.getLogger(__name__)
 
-from aspirelib.lib import (util, config, exceptions, message_type)
-from .scriptlib import (utils, blocks, processblock)
+from aspirelib.lib import util
+from aspirelib.lib import config
+from aspirelib.lib import exceptions
+from aspirelib.lib import message_type
+from .scriptlib import utils
+from .scriptlib import blocks
+from .scriptlib import processblock
+
+logger = logging.getLogger(__name__)
 
 FORMAT = '>20sQQQ'
 LENGTH = 44
 ID = 101
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
 
     # Executions
@@ -70,7 +77,7 @@ def initialise (db):
                   ''')
 
 
-def compose (db, source, contract_id, gasprice, startgas, value, payload_hex):
+def compose(db, source, contract_id, gasprice, startgas, value, payload_hex):
     if not config.TESTNET:  # TODO
         return
 
@@ -88,6 +95,7 @@ def compose (db, source, contract_id, gasprice, startgas, value, payload_hex):
 
     return (source, [], data)
 
+
 class Transaction(object):
     def __init__(self, tx, to, gasprice, startgas, value, data):
         assert type(data) == bytes
@@ -101,20 +109,20 @@ class Transaction(object):
         self.startgas = startgas
         self.value = value
         self.timestamp = tx['block_time']
+
     def hex_hash(self):
         return '<None>'
-    def to_dict(self):
-        dict_ = {
-                 'sender': self.sender,
-                 'data': utils.hexprint(self.data),
-                 'to': self.to,
-                 'gasprice': self.gasprice,
-                 'startgas': self.startgas,
-                 'value': self.value
-                }
-        return dict_
 
-def parse (db, tx, message):
+    def to_dict(self):
+        return {'sender': self.sender,
+                'data': utils.hexprint(self.data),
+                'to': self.to,
+                'gasprice': self.gasprice,
+                'startgas': self.startgas,
+                'value': self.value}
+
+
+def parse(db, tx, message):
     if not config.TESTNET:  # TODO
         return
 
@@ -127,7 +135,7 @@ def parse (db, tx, message):
         curr_format = FORMAT + '{}s'.format(len(message) - LENGTH)
         try:
             contract_id, gasprice, startgas, value, payload = struct.unpack(curr_format, message)
-            if gasprice > config.MAX_INT or startgas > config.MAX_INT or value > config.MAX_INT: # TODO: define max for gasprice and startgas
+            if gasprice > config.MAX_INT or startgas > config.MAX_INT or value > config.MAX_INT:  # TODO: define max for gasprice and startgas
                 raise exceptions.UnpackError()
         except (struct.error) as e:
             raise exceptions.UnpackError()
@@ -144,7 +152,7 @@ def parse (db, tx, message):
         success, output, gas_remained = processblock.apply_transaction(db, tx_obj, block_obj)
         if not success and output == '':
             status = 'out of gas'
-        gas_cost = gasprice * (startgas - gas_remained) # different definition from pyethereum’s
+        gas_cost = gasprice * (startgas - gas_remained)  # different definition from pyethereum’s
 
     except exceptions.UnpackError as e:
         contract_id, gasprice, startgas, value, payload = None, None, None, None, None
@@ -189,7 +197,7 @@ def parse (db, tx, message):
             'output': output,
             'status': status
         }
-        sql='insert into executions values(:tx_index, :tx_hash, :block_index, :source, :contract_id, :gasprice, :startgas, :gas_cost, :gas_remained, :value, :data, :output, :status)'
+        sql = 'insert into executions values(:tx_index, :tx_hash, :block_index, :source, :contract_id, :gasprice, :startgas, :gas_cost, :gas_remained, :value, :data, :output, :status)'
         cursor = db.cursor()
         cursor.execute(sql, bindings)
 
