@@ -125,21 +125,20 @@ def generate_asset_id(asset_name, block_index):
         raise exceptions.AssetNameError('too short')
 
     # Numeric asset names.
-    if enabled('numeric_asset_names'):  # Protocol change.
-        if asset_name[0] == 'A':
-            # Must be numeric.
-            try:
-                asset_id = int(asset_name[1:])
-            except ValueError:
-                raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
+    if asset_name[0] == 'A':
+        # Must be numeric.
+        try:
+            asset_id = int(asset_name[1:])
+        except ValueError:
+            raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
 
-            # Number must be in range.
-            if not (26**12 + 1 <= asset_id <= 2**64 - 1):
-                raise exceptions.AssetNameError('numeric asset name not in range')
+        # Number must be in range.
+        if not (26**12 + 1 <= asset_id <= 2**64 - 1):
+            raise exceptions.AssetNameError('numeric asset name not in range')
 
-            return asset_id
-        elif len(asset_name) >= 13:
-            raise exceptions.AssetNameError('long asset names must be numeric')
+        return asset_id
+    elif len(asset_name) >= 13:
+        raise exceptions.AssetNameError('long asset names must be numeric')
 
     if asset_name[0] == 'A':
         raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
@@ -170,13 +169,12 @@ def generate_asset_name(asset_id, block_index):
     if asset_id < 26**3:
         raise exceptions.AssetIDError('too low')
 
-    if enabled('numeric_asset_names'):  # Protocol change.
-        if asset_id <= 2**64 - 1:
-            if 26**12 + 1 <= asset_id:
-                asset_name = 'A' + str(asset_id)
-                return asset_name
-        else:
-            raise exceptions.AssetIDError('too high')
+    if asset_id <= 2**64 - 1:
+        if 26**12 + 1 <= asset_id:
+            asset_name = 'A' + str(asset_id)
+            return asset_name
+    else:
+        raise exceptions.AssetIDError('too high')
 
     # Divide that integer into Base 26 string.
     res = []
