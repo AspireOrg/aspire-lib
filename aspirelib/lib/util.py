@@ -3,7 +3,6 @@ import decimal
 import sys
 import json
 import logging
-logger = logging.getLogger(__name__)
 import apsw
 import inspect
 import requests
@@ -26,16 +25,17 @@ from aspirelib.lib import exceptions
 from aspirelib.lib.exceptions import DecodeError
 from aspirelib.lib import config
 
+logger = logging.getLogger(__name__)
 D = decimal.Decimal
 B26_DIGITS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 # subasset contain only characters a-zA-Z0-9.-_@!
 SUBASSET_DIGITS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_@!'
-SUBASSET_REVERSE = {'a':1,'b':2,'c':3,'d':4,'e':5,'f':6,'g':7,'h':8,'i':9,'j':10,'k':11,'l':12,'m':13,'n':14,
-                    'o':15,'p':16,'q':17,'r':18,'s':19,'t':20,'u':21,'v':22,'w':23,'x':24,'y':25,'z':26,
-                    'A':27,'B':28,'C':29,'D':30,'E':31,'F':32,'G':33,'H':34,'I':35,'J':36,'K':37,'L':38,'M':39,
-                    'N':40,'O':41,'P':42,'Q':43,'R':44,'S':45,'T':46,'U':47,'V':48,'W':49,'X':50,'Y':51,'Z':52,
-                    '0':53,'1':54,'2':55,'3':56,'4':57,'5':58,'6':59,'7':60,'8':61,'9':62,'.':63,'-':64,'_':65,'@':66,'!':67}
+SUBASSET_REVERSE = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h': 8, 'i': 9, 'j': 10, 'k': 11, 'l': 12, 'm': 13, 'n': 14,
+                    'o': 15, 'p': 16, 'q': 17, 'r': 18, 's': 19, 't': 20, 'u': 21, 'v': 22, 'w': 23, 'x': 24, 'y': 25, 'z': 26,
+                    'A': 27, 'B': 28, 'C': 29, 'D': 30, 'E': 31, 'F': 32, 'G': 33, 'H': 34, 'I': 35, 'J': 36, 'K': 37, 'L': 38, 'M': 39,
+                    'N': 40, 'O': 41, 'P': 42, 'Q': 43, 'R': 44, 'S': 45, 'T': 46, 'U': 47, 'V': 48, 'W': 49, 'X': 50, 'Y': 51, 'Z': 52,
+                    '0': 53, '1': 54, '2': 55, '3': 56, '4': 57, '5': 58, '6': 59, '7': 60, '8': 61, '9': 62, '.': 63, '-': 64, '_': 65, '@': 66, '!': 67}
 
 # Obsolete in Python 3.4, with enum module.
 BET_TYPE_NAME = {0: 'BullCFD', 1: 'BearCFD', 2: 'Equal', 3: 'NotEqual'}
@@ -51,7 +51,10 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 with open(CURR_DIR + '/../protocol_changes.json') as f:
     PROTOCOL_CHANGES = json.load(f)
 
-class RPCError (Exception): pass
+
+class RPCError(Exception):
+    pass
+
 
 # TODO: Move to `util_test.py`.
 # TODO: This doesn’t timeout properly. (If server hangs, then unhangs, no result.)
@@ -65,7 +68,7 @@ def api(method, params):
         "id": 0,
     }
     response = requests.post(config.RPC, data=json.dumps(payload), headers=headers)
-    if response == None:
+    if response is None:
         raise RPCError('Cannot communicate with {} server.'.format(config.XCP_NAME))
     elif response.status_code != 200:
         if response.status_code == 500:
@@ -74,7 +77,7 @@ def api(method, params):
             raise RPCError(str(response.status_code) + ' ' + response.reason)
 
     response_json = response.json()
-    if 'error' not in response_json.keys() or response_json['error'] == None:
+    if 'error' not in response_json.keys() or response_json['error'] is None:
         try:
             return response_json['result']
         except KeyError:
@@ -82,22 +85,21 @@ def api(method, params):
     else:
         raise RPCError('{} ({})'.format(response_json['error']['message'], response_json['error']['code']))
 
+
 def chunkify(l, n):
     n = max(1, n)
     return [l[i:i + n] for i in range(0, len(l), n)]
+
 
 def date_passed(date):
     """Check if the date has already passed."""
     return date <= int(time.time())
 
-def price (numerator, denominator):
+
+def price(numerator, denominator):
     """Return price as Fraction or Decimal."""
-    if CURRENT_BLOCK_INDEX >= 294500 or config.TESTNET: # Protocol change.
-        return fractions.Fraction(numerator, denominator)
-    else:
-        numerator = D(numerator)
-        denominator = D(denominator)
-        return D(numerator / denominator)
+    return fractions.Fraction(numerator, denominator)
+
 
 def last_message(db):
     """Return latest message from the db."""
@@ -111,10 +113,13 @@ def last_message(db):
     cursor.close()
     return last_message
 
+
 def generate_asset_id(asset_name, block_index):
     """Create asset_id from asset_name."""
-    if asset_name == config.BTC: return 0
-    elif asset_name == config.XCP: return 1
+    if asset_name == config.BTC:
+        return 0
+    elif asset_name == config.XCP:
+        return 1
 
     if len(asset_name) < 4:
         raise exceptions.AssetNameError('too short')
@@ -136,7 +141,8 @@ def generate_asset_id(asset_name, block_index):
         elif len(asset_name) >= 13:
             raise exceptions.AssetNameError('long asset names must be numeric')
 
-    if asset_name[0] == 'A': raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
+    if asset_name[0] == 'A':
+        raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
 
     # Convert the Base 26 string to an integer.
     n = 0
@@ -153,10 +159,13 @@ def generate_asset_id(asset_name, block_index):
 
     return asset_id
 
-def generate_asset_name (asset_id, block_index):
+
+def generate_asset_name(asset_id, block_index):
     """Create asset_name from asset_id."""
-    if asset_id == 0: return config.BTC
-    elif asset_id == 1: return config.XCP
+    if asset_id == 0:
+        return config.BTC
+    elif asset_id == 1:
+        return config.XCP
 
     if asset_id < 26**3:
         raise exceptions.AssetIDError('too low')
@@ -173,7 +182,7 @@ def generate_asset_name (asset_id, block_index):
     res = []
     n = asset_id
     while n > 0:
-        n, r = divmod (n, 26)
+        n, r = divmod(n, 26)
         res.append(B26_DIGITS[r])
     asset_name = ''.join(res[::-1])
 
@@ -183,7 +192,7 @@ def generate_asset_name (asset_id, block_index):
     return asset_name
 
 
-def get_asset_id (db, asset_name, block_index):
+def get_asset_id(db, asset_name, block_index):
     """Return asset_id from asset_name."""
     if not enabled('hotfix_numeric_assets'):
         return generate_asset_id(asset_name, block_index)
@@ -195,7 +204,8 @@ def get_asset_id (db, asset_name, block_index):
     else:
         raise exceptions.AssetError('No such asset: {}'.format(asset_name))
 
-def get_asset_name (db, asset_id, block_index):
+
+def get_asset_name(db, asset_id, block_index):
     """Return asset_name from asset_id."""
     if not enabled('hotfix_numeric_assets'):
         return generate_asset_name(asset_id, block_index)
@@ -204,8 +214,8 @@ def get_asset_name (db, asset_id, block_index):
     assets = list(cursor)
     if len(assets) == 1:
         return assets[0]['asset_name']
-    elif not assets:
-        return 0    # Strange, I know…
+    return 0    # Strange, I know…
+
 
 # If asset_name is an existing subasset (PARENT.child) then return the corresponding numeric asset name (A12345)
 #   If asset_name is not an existing subasset, then return the unmodified asset_name
@@ -250,6 +260,7 @@ def parse_subasset_from_asset_name(asset):
 
     return (subasset_parent, subasset_longname)
 
+
 # throws exceptions for invalid subasset names
 def validate_subasset_longname(subasset_longname, subasset_child=None):
     if subasset_child is None:
@@ -277,6 +288,7 @@ def validate_subasset_longname(subasset_longname, subasset_child=None):
 
     return True
 
+
 # throws exceptions for invalid subasset names
 def validate_subasset_parent_name(asset_name):
     if asset_name == config.BTC:
@@ -294,6 +306,7 @@ def validate_subasset_parent_name(asset_name):
             raise exceptions.AssetNameError('parent asset name contains invalid character:', c)
     return True
 
+
 def compact_subasset_longname(string):
     """Compacts a subasset name string into an array of bytes to save space using a base68 encoding scheme.
     Assumes all characters provided belong to SUBASSET_DIGITS.
@@ -302,6 +315,7 @@ def compact_subasset_longname(string):
     for i, c in enumerate(string[::-1]):
         name_int += (68 ** i) * SUBASSET_REVERSE[c]
     return name_int.to_bytes((name_int.bit_length() + 7) // 8, byteorder='big')
+
 
 def expand_subasset_longname(raw_bytes):
     """Expands an array of bytes into a subasset name string."""
@@ -314,11 +328,16 @@ def expand_subasset_longname(raw_bytes):
         integer //= 68
     return ret
 
-def generate_random_asset ():
+
+def generate_random_asset():
     return 'A' + str(random.randint(26**12 + 1, 2**64 - 1))
 
-class DebitError (Exception): pass
-def debit (db, address, asset, quantity, action=None, event=None):
+
+class DebitError (Exception):
+    pass
+
+
+def debit(db, address, asset, quantity, action=None, event=None):
     """Debit given address by quantity of asset."""
     block_index = CURRENT_BLOCK_INDEX
 
@@ -334,9 +353,8 @@ def debit (db, address, asset, quantity, action=None, event=None):
     debit_cursor = db.cursor()
 
     # Contracts can only hold ASP balances.
-    if enabled('contracts_only_xcp_balances'): # Protocol change.
-        if len(address) == 40:
-            assert asset == config.XCP
+    if len(address) == 40:
+        assert asset == config.XCP
 
     if asset == config.BTC:
         raise exceptions.BalanceError('Cannot debit gasp from a {} address!'.format(config.XCP_NAME))
@@ -361,7 +379,7 @@ def debit (db, address, asset, quantity, action=None, event=None):
         'address': address,
         'asset': asset
     }
-    sql='update balances set quantity = :quantity where (address = :address and asset = :asset)'
+    sql = 'update balances set quantity = :quantity where (address = :address and asset = :asset)'
     debit_cursor.execute(sql, bindings)
 
     # Record debit.
@@ -373,14 +391,18 @@ def debit (db, address, asset, quantity, action=None, event=None):
         'action': action,
         'event': event
     }
-    sql='insert into debits values(:block_index, :address, :asset, :quantity, :action, :event)'
+    sql = 'insert into debits values(:block_index, :address, :asset, :quantity, :action, :event)'
     debit_cursor.execute(sql, bindings)
     debit_cursor.close()
 
     BLOCK_LEDGER.append('{}{}{}{}'.format(block_index, address, asset, quantity))
 
-class CreditError (Exception): pass
-def credit (db, address, asset, quantity, action=None, event=None):
+
+class CreditError (Exception):
+    pass
+
+
+def credit(db, address, asset, quantity, action=None, event=None):
     """Credit given address by quantity of asset."""
     block_index = CURRENT_BLOCK_INDEX
 
@@ -396,9 +418,8 @@ def credit (db, address, asset, quantity, action=None, event=None):
     credit_cursor = db.cursor()
 
     # Contracts can only hold ASP balances.
-    if enabled('contracts_only_xcp_balances'): # Protocol change.
-        if len(address) == 40:
-            assert asset == config.XCP
+    if len(address) == 40:
+        assert asset == config.XCP
 
     credit_cursor.execute('''SELECT * FROM balances \
                              WHERE (address = ? AND asset = ?)''', (address, asset))
@@ -406,13 +427,13 @@ def credit (db, address, asset, quantity, action=None, event=None):
     if len(balances) == 0:
         assert balances == []
 
-        #update balances table with new balance
+        # update balances table with new balance
         bindings = {
             'address': address,
             'asset': asset,
             'quantity': quantity,
         }
-        sql='insert into balances values(:address, :asset, :quantity)'
+        sql = 'insert into balances values(:address, :asset, :quantity)'
         credit_cursor.execute(sql, bindings)
     elif len(balances) > 1:
         assert False
@@ -427,7 +448,7 @@ def credit (db, address, asset, quantity, action=None, event=None):
             'address': address,
             'asset': asset
         }
-        sql='update balances set quantity = :quantity where (address = :address and asset = :asset)'
+        sql = 'update balances set quantity = :quantity where (address = :address and asset = :asset)'
         credit_cursor.execute(sql, bindings)
 
     # Record credit.
@@ -439,14 +460,17 @@ def credit (db, address, asset, quantity, action=None, event=None):
         'action': action,
         'event': event
     }
-    sql='insert into credits values(:block_index, :address, :asset, :quantity, :action, :event)'
+    sql = 'insert into credits values(:block_index, :address, :asset, :quantity, :action, :event)'
 
     credit_cursor.execute(sql, bindings)
     credit_cursor.close()
 
     BLOCK_LEDGER.append('{}{}{}{}'.format(block_index, address, asset, quantity))
 
-class QuantityError(Exception): pass
+
+class QuantityError(Exception):
+    pass
+
 
 def is_divisible(db, asset):
     """Check if the asset is divisible."""
@@ -457,8 +481,10 @@ def is_divisible(db, asset):
         cursor.execute('''SELECT * FROM issuances \
                           WHERE (status = ? AND asset = ?)''', ('valid', asset))
         issuances = cursor.fetchall()
-        if not issuances: raise exceptions.AssetError('No such asset: {}'.format(asset))
+        if not issuances:
+            raise exceptions.AssetError('No such asset: {}'.format(asset))
         return issuances[0]['divisible']
+
 
 def value_input(quantity, asset, divisible):
     if asset == 'leverage':
@@ -479,10 +505,12 @@ def value_input(quantity, asset, divisible):
             raise QuantityError('Fractional quantities of indivisible assets.')
         return round(quantity)
 
+
 def value_in(db, quantity, asset, divisible=None):
     if asset not in ['leverage', 'value', 'fraction', 'price', 'odds'] and divisible == None:
         divisible = is_divisible(db, asset)
     return value_input(quantity, asset, divisible)
+
 
 def value_output(quantity, asset, divisible):
 
@@ -491,7 +519,7 @@ def value_output(quantity, asset, divisible):
         num = round(num, places)
         fmt = '{:.' + str(places) + 'f}'
         num = fmt.format(num)
-        return num.rstrip('0')+'0' if num.rstrip('0')[-1] == '.' else num.rstrip('0')
+        return num.rstrip('0') + '0' if num.rstrip('0')[-1] == '.' else num.rstrip('0')
 
     if asset == 'fraction':
         return str(norm(D(quantity) * D(100), 6)) + '%'
@@ -511,13 +539,14 @@ def value_output(quantity, asset, divisible):
             raise QuantityError('Fractional quantities of indivisible assets.')
         return round(quantity)
 
+
 def value_out(db, quantity, asset, divisible=None):
-    if asset not in ['leverage', 'value', 'fraction', 'price', 'odds'] and divisible == None:
+    if asset not in ['leverage', 'value', 'fraction', 'price', 'odds'] and divisible is None:
         divisible = is_divisible(db, asset)
     return value_output(quantity, asset, divisible)
 
-### SUPPLIES ###
 
+# SUPPLIES
 def holders(db, asset):
     """Return holders of the asset."""
     holders = []
@@ -564,7 +593,7 @@ def holders(db, asset):
             holders.append({'address': rps_match['tx0_address'], 'address_quantity': rps_match['wager'], 'escrow': rps_match['id']})
             holders.append({'address': rps_match['tx1_address'], 'address_quantity': rps_match['wager'], 'escrow': rps_match['id']})
 
-        cursor.execute('''SELECT * FROM executions WHERE status IN (?,?)''', ('valid','out of gas'))
+        cursor.execute('''SELECT * FROM executions WHERE status IN (?,?)''', ('valid', 'out of gas'))
         for execution in list(cursor):
             holders.append({'address': execution['source'], 'address_quantity': execution['gas_cost'], 'escrow': None})
 
@@ -576,7 +605,8 @@ def holders(db, asset):
     cursor.close()
     return holders
 
-def xcp_created (db):
+
+def xcp_created(db):
     """Return number of ASP created thus far."""
     cursor = db.cursor()
     cursor.execute('''SELECT SUM(earned) AS total FROM burns \
@@ -585,7 +615,8 @@ def xcp_created (db):
     cursor.close()
     return total
 
-def xcp_destroyed (db):
+
+def xcp_destroyed(db):
     """Return number of ASP destroyed thus far."""
     cursor = db.cursor()
     # Destructions
@@ -603,11 +634,13 @@ def xcp_destroyed (db):
     cursor.close()
     return destroyed_total + issuance_fee_total + dividend_fee_total
 
-def xcp_supply (db):
+
+def xcp_supply(db):
     """Return the ASP supply."""
     return xcp_created(db) - xcp_destroyed(db)
 
-def creations (db):
+
+def creations(db):
     """Return creations."""
     cursor = db.cursor()
     creations = {config.XCP: xcp_created(db)}
@@ -622,7 +655,8 @@ def creations (db):
     cursor.close()
     return creations
 
-def destructions (db):
+
+def destructions(db):
     """Return destructions."""
     cursor = db.cursor()
     destructions = {config.XCP: xcp_destroyed(db)}
@@ -637,7 +671,8 @@ def destructions (db):
     cursor.close()
     return destructions
 
-def asset_supply (db, asset):
+
+def asset_supply(db, asset):
     """Return asset supply."""
     supply = creations(db)[asset]
     destroyed = destructions(db)
@@ -645,13 +680,15 @@ def asset_supply (db, asset):
         supply -= destroyed[asset]
     return supply
 
-def supplies (db):
+
+def supplies(db):
     """Return supplies."""
     d1 = creations(db)
     d2 = destructions(db)
     return {key: d1[key] - d2.get(key, 0) for key in d1.keys()}
 
-def held (db): #TODO: Rename ?
+
+def held(db):  # TODO: Rename ?
     sql = '''SELECT asset, SUM(total) AS total FROM (
                 SELECT asset, SUM(quantity) AS total FROM balances GROUP BY asset
                 UNION ALL
@@ -686,10 +723,13 @@ def held (db): #TODO: Rename ?
 
     return held
 
-### SUPPLIES ###
+# END SUPPLIES
 
 
-class GetURLError (Exception): pass
+class GetURLError (Exception):
+    pass
+
+
 def get_url(url, abort_on_error=False, is_json=True, fetch_timeout=5):
     """Fetch URL using requests.get."""
     try:
@@ -714,22 +754,27 @@ def dhash_string(text):
     return binascii.hexlify(dhash(text)).decode()
 
 
-def get_balance (db, address, asset):
+def get_balance(db, address, asset):
     """Get balance of contract or address."""
     cursor = db.cursor()
     balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (address, asset)))
     cursor.close()
-    if not balances: return 0
-    else: return balances[0]['quantity']
+    if not balances:
+        return 0
+    return balances[0]['quantity']
+
 
 # Why on Earth does `binascii.hexlify()` return bytes?!
 def hexlify(x):
     """Return the hexadecimal representation of the binary data. Decode from ASCII to UTF-8."""
     return binascii.hexlify(x).decode('ascii')
+
+
 def unhexlify(hex_string):
     return binascii.unhexlify(bytes(hex_string, 'utf-8'))
 
-### Protocol Changes ###
+
+# Protocol Changes
 def enabled(change_name, block_index=None):
     """Return True if protocol change is enabled."""
     index_name = 'testnet_block_index' if config.TESTNET else 'block_index'
@@ -740,20 +785,23 @@ def enabled(change_name, block_index=None):
 
     if block_index >= enable_block_index:
         return True
-    else:
-        return False
+    return False
+
 
 def transfer(db, source, destination, asset, quantity, action, event):
     """Transfer quantity of asset from source to destination."""
     debit(db, source, asset, quantity, action=action, event=event)
     credit(db, destination, asset, quantity, action=action, event=event)
 
-ID_SEPARATOR = '_'
+
 def make_id(hash_1, hash_2):
-    return hash_1 + ID_SEPARATOR + hash_2
+    return hash_1 + '_' + hash_2
+
+
 def parse_id(match_id):
-    assert match_id[64] == ID_SEPARATOR
-    return match_id[:64], match_id[65:] # UTF-8 encoding means that the indices are doubled.
+    assert match_id[64] == '_'
+    return match_id[:64], match_id[65:]  # UTF-8 encoding means that the indices are doubled.
+
 
 def sizeof(v):
     if isinstance(v, dict) or isinstance(v, DictCache):
@@ -766,26 +814,27 @@ def sizeof(v):
     else:
         return sys.getsizeof(v)
 
+
 class DictCache:
     """Threadsafe FIFO dict cache"""
     def __init__(self, size=100):
-        if int(size) < 1 :
+        if int(size) < 1:
             raise AttributeError('size < 1 or not a number')
         self.size = size
         self.dict = collections.OrderedDict()
         self.lock = threading.Lock()
 
-    def __getitem__(self,key):
+    def __getitem__(self, key):
         with self.lock:
             return self.dict[key]
 
-    def __setitem__(self,key,value):
+    def __setitem__(self, key, value):
         with self.lock:
             while len(self.dict) >= self.size:
                 self.dict.popitem(last=False)
             self.dict[key] = value
 
-    def __delitem__(self,key):
+    def __delitem__(self, key):
         with self.lock:
             del self.dict[key]
 
@@ -803,6 +852,8 @@ class DictCache:
 
 
 URL_USERNAMEPASS_REGEX = re.compile('.+://(.+)@')
+
+
 def clean_url_for_log(url):
     m = URL_USERNAMEPASS_REGEX.match(url)
     if m and m.group(1):

@@ -329,7 +329,7 @@ def parse(db, tx, message, message_type_id):
                 curr_format = FORMAT_2 + '{}s'.format(len(message) - LENGTH_2)
             asset_id, quantity, divisible, callable_, call_date, call_price, description = struct.unpack(curr_format, message)
 
-            call_price = round(call_price, 6) # TODO: arbitrary
+            call_price = round(call_price, 6)  # TODO: arbitrary
             try:
                 description = description.decode('utf-8')
             except UnicodeDecodeError:
