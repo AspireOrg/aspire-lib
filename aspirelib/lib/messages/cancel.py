@@ -8,16 +8,18 @@ import binascii
 import struct
 import json
 import logging
-logger = logging.getLogger(__name__)
 
-from aspirelib.lib import (config, exceptions, util, message_type)
+from aspirelib.lib import exceptions
+from aspirelib.lib import message_type
 from . import (order, bet, rps)
 
+logger = logging.getLogger(__name__)
 FORMAT = '>32s'
 LENGTH = 32
 ID = 70
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS cancels(
                       tx_index INTEGER PRIMARY KEY,
@@ -36,7 +38,8 @@ def initialise (db):
                       source_idx ON cancels (source)
                    ''')
 
-def validate (db, source, offer_hash):
+
+def validate(db, source, offer_hash):
     problems = []
 
     # TODO: make query only if necessary
@@ -50,10 +53,14 @@ def validate (db, source, offer_hash):
     cursor.close()
 
     offer_type = None
-    if orders: offer_type = 'order'
-    elif bets: offer_type = 'bet'
-    elif rps: offer_type = 'rps'
-    else: problems = ['no open offer with that hash']
+    if orders:
+        offer_type = 'order'
+    elif bets:
+        offer_type = 'bet'
+    elif rps:
+        offer_type = 'rps'
+    else:
+        problems = ['no open offer with that hash']
 
     offer = None
     if offer_type:
@@ -66,18 +73,20 @@ def validate (db, source, offer_hash):
 
     return offer, offer_type, problems
 
-def compose (db, source, offer_hash):
 
+def compose(db, source, offer_hash):
     # Check that offer exists.
     offer, offer_type, problems = validate(db, source, offer_hash)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     offer_hash_bytes = binascii.unhexlify(bytes(offer_hash, 'utf-8'))
     data = message_type.pack(ID)
     data += struct.pack(FORMAT, offer_hash_bytes)
     return (source, [], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     cursor = db.cursor()
 
     # Unpack message.
@@ -87,7 +96,7 @@ def parse (db, tx, message):
         offer_hash_bytes = struct.unpack(FORMAT, message)[0]
         offer_hash = binascii.hexlify(offer_hash_bytes).decode('utf-8')
         status = 'valid'
-    except (exceptions.UnpackError, struct.error) as e:
+    except exceptions.UnpackError, struct.error:
         offer_hash = None
         status = 'invalid: could not unpack'
 
@@ -120,12 +129,11 @@ def parse (db, tx, message):
         'status': status,
     }
     if "integer overflow" not in status:
-        sql='INSERT INTO cancels VALUES (:tx_index, :tx_hash, :block_index, :source, :offer_hash, :status)'
+        sql = 'INSERT INTO cancels VALUES (:tx_index, :tx_hash, :block_index, :source, :offer_hash, :status)'
         cursor.execute(sql, bindings)
     else:
         logger.warn("Not storing [cancel] tx [%s]: %s" % (tx['tx_hash'], status))
         logger.debug("Bindings: %s" % (json.dumps(bindings), ))
-
     cursor.close()
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

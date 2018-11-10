@@ -5,7 +5,6 @@
 import struct
 import json
 import logging
-logger = logging.getLogger(__name__)
 
 from aspirelib.lib import util
 from aspirelib.lib import config
@@ -13,6 +12,8 @@ from aspirelib.lib import script
 from aspirelib.lib import message_type
 from aspirelib.lib.script import AddressError
 from aspirelib.lib.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 FORMAT = '>QQ8s'
 LENGTH = 8 + 8 + 8
@@ -60,8 +61,7 @@ def unpack(db, message):
     return asset, quantity, tag
 
 
-def validate (db, source, destination, asset, quantity):
-
+def validate(db, source, destination, asset, quantity):
     try:
         util.get_asset_id(db, asset, util.CURRENT_BLOCK_INDEX)
     except AssetError:
@@ -94,7 +94,7 @@ def validate (db, source, destination, asset, quantity):
         raise ValidateError('disabled on mainnet')
 
 
-def compose (db, source, asset, quantity, tag):
+def compose(db, source, asset, quantity, tag):
     # resolve subassets
     asset = util.resolve_subasset_longname(db, asset)
 
@@ -104,7 +104,7 @@ def compose (db, source, asset, quantity, tag):
     return (source, [], data)
 
 
-def parse (db, tx, message):
+def parse(db, tx, message):
     status = 'valid'
 
     asset, quantity, tag = None, None, None
@@ -120,16 +120,14 @@ def parse (db, tx, message):
     except (ValidateError, BalanceError) as e:
         status = 'invalid: ' + ''.join(e.args)
 
-    bindings = {
-                'tx_index': tx['tx_index'],
+    bindings = {'tx_index': tx['tx_index'],
                 'tx_hash': tx['tx_hash'],
                 'block_index': tx['block_index'],
                 'source': tx['source'],
                 'asset': asset,
                 'quantity': quantity,
                 'tag': tag,
-                'status': status,
-               }
+                'status': status}
     if "integer overflow" not in status:
         sql = 'insert into destructions values(:tx_index, :tx_hash, :block_index, :source, :asset, :quantity, :tag, :status)'
         cursor = db.cursor()

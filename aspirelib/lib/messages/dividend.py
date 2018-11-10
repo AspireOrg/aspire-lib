@@ -4,11 +4,15 @@
 import json
 import struct
 import decimal
-D = decimal.Decimal
 import logging
-logger = logging.getLogger(__name__)
 
-from aspirelib.lib import (config, exceptions, util, message_type)
+from aspirelib.lib import config
+from aspirelib.lib import exceptions
+from aspirelib.lib import util
+from aspirelib.lib import message_type
+
+D = decimal.Decimal
+logger = logging.getLogger(__name__)
 
 FORMAT_1 = '>QQ'
 LENGTH_1 = 8 + 8
@@ -16,7 +20,8 @@ FORMAT_2 = '>QQQ'
 LENGTH_2 = 8 + 8 + 8
 ID = 50
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS dividends(
                       tx_index INTEGER PRIMARY KEY,
@@ -40,15 +45,15 @@ def initialise (db):
                       asset_idx ON dividends (asset)
                    ''')
 
-def validate (db, source, quantity_per_unit, asset, dividend_asset, block_index):
+
+def validate(db, source, quantity_per_unit, asset, dividend_asset, block_index):
     cursor = db.cursor()
     problems = []
 
     if asset == config.BTC:
         problems.append('cannot pay dividends to holders of {}'.format(config.BTC))
     if asset == config.XCP:
-        if (not block_index >= 317500) or block_index >= 320000 or config.TESTNET:   # Protocol change.
-            problems.append('cannot pay dividends to holders of {}'.format(config.XCP))
+        problems.append('cannot pay dividends to holders of {}'.format(config.XCP))
 
     if quantity_per_unit <= 0:
         problems.append('non‐positive quantity per unit')
@@ -65,9 +70,8 @@ def validate (db, source, quantity_per_unit, asset, dividend_asset, block_index)
     divisible = issuances[0]['divisible']
 
     # Only issuer can pay dividends.
-    if block_index >= 320000 or config.TESTNET:   # Protocol change.
-        if issuances[-1]['issuer'] != source:
-            problems.append('only issuer can pay dividends')
+    if issuances[-1]['issuer'] != source:
+        problems.append('only issuer can pay dividends')
 
     # Examine dividend asset.
     if dividend_asset in (config.BTC, config.XCP):
@@ -85,26 +89,30 @@ def validate (db, source, quantity_per_unit, asset, dividend_asset, block_index)
     addresses = []
     dividend_total = 0
     for holder in holders:
-
-        if block_index < 294500 and not config.TESTNET: # Protocol change.
-            if holder['escrow']: continue
-
         address = holder['address']
         address_quantity = holder['address_quantity']
-        if block_index >= 296000 or config.TESTNET: # Protocol change.
-            if address == source: continue
+        if address == source:
+            continue
 
         dividend_quantity = address_quantity * quantity_per_unit
-        if divisible: dividend_quantity /= config.UNIT
-        if not dividend_divisible: dividend_quantity /= config.UNIT
-        if dividend_asset == config.BTC and dividend_quantity < config.DEFAULT_MULTISIG_DUST_SIZE: continue    # A bit hackish.
+
+        if divisible:
+            dividend_quantity /= config.UNIT
+
+        if not dividend_divisible:
+            dividend_quantity /= config.UNIT
+
+        if dividend_asset == config.BTC and dividend_quantity < config.DEFAULT_MULTISIG_DUST_SIZE:
+            continue    # A bit hackish.
+
         dividend_quantity = int(dividend_quantity)
 
         outputs.append({'address': address, 'address_quantity': address_quantity, 'dividend_quantity': dividend_quantity})
         addresses.append(address)
         dividend_total += dividend_quantity
 
-    if not dividend_total: problems.append('zero dividend')
+    if not dividend_total:
+        problems.append('zero dividend')
 
     if dividend_asset != config.BTC:
         dividend_balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, dividend_asset)))
@@ -114,12 +122,10 @@ def validate (db, source, quantity_per_unit, asset, dividend_asset, block_index)
     fee = 0
     if not problems and dividend_asset != config.BTC:
         holder_count = len(set(addresses))
-        if block_index >= 330000 or config.TESTNET: # Protocol change.
-            fee = int(0.0002 * config.UNIT * holder_count)
-        if fee:
-            balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, config.XCP)))
-            if not balances or balances[0]['quantity'] < fee:
-                problems.append('insufficient funds ({})'.format(config.XCP))
+        fee = int(0.0002 * config.UNIT * holder_count)
+        balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, config.XCP)))
+        if not balances or balances[0]['quantity'] < fee:
+            problems.append('insufficient funds ({})'.format(config.XCP))
 
     if not problems and dividend_asset == config.XCP:
         total_cost = dividend_total + fee
@@ -133,13 +139,15 @@ def validate (db, source, quantity_per_unit, asset, dividend_asset, block_index)
     cursor.close()
     return dividend_total, outputs, problems, fee
 
-def compose (db, source, quantity_per_unit, asset, dividend_asset):
+
+def compose(db, source, quantity_per_unit, asset, dividend_asset):
     # resolve subassets
     asset = util.resolve_subasset_longname(db, asset)
     dividend_asset = util.resolve_subasset_longname(db, dividend_asset)
 
     dividend_total, outputs, problems, fee = validate(db, source, quantity_per_unit, asset, dividend_asset, util.CURRENT_BLOCK_INDEX)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
     logger.info('Total quantity to be distributed in dividends: {} {}'.format(util.value_out(db, dividend_total, dividend_asset), dividend_asset))
 
     if dividend_asset == config.BTC:
@@ -151,7 +159,8 @@ def compose (db, source, quantity_per_unit, asset, dividend_asset):
     data += struct.pack(FORMAT_2, quantity_per_unit, asset_id, dividend_asset_id)
     return (source, [], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     dividend_parse_cursor = db.cursor()
 
     # Unpack message.
@@ -168,7 +177,7 @@ def parse (db, tx, message):
             status = 'valid'
         else:
             raise exceptions.UnpackError
-    except (exceptions.UnpackError, exceptions.AssetNameError, struct.error) as e:
+    except exceptions.UnpackError, exceptions.AssetNameError, struct.error:
         dividend_asset, quantity_per_unit, asset = None, None, None
         status = 'invalid: could not unpack'
 
@@ -180,13 +189,13 @@ def parse (db, tx, message):
         quantity_per_unit = min(quantity_per_unit, config.MAX_INT)
 
         dividend_total, outputs, problems, fee = validate(db, tx['source'], quantity_per_unit, asset, dividend_asset, block_index=tx['block_index'])
-        if problems: status = 'invalid: ' + '; '.join(problems)
+        if problems:
+            status = 'invalid: ' + '; '.join(problems)
 
     if status == 'valid':
         # Debit.
         util.debit(db, tx['source'], dividend_asset, dividend_total, action='dividend', event=tx['tx_hash'])
-        if tx['block_index'] >= 330000 or config.TESTNET: # Protocol change.
-            util.debit(db, tx['source'], config.XCP, fee, action='dividend fee', event=tx['tx_hash'])
+        util.debit(db, tx['source'], config.XCP, fee, action='dividend fee', event=tx['tx_hash'])
 
         # Credit.
         for output in outputs:
