@@ -20,28 +20,29 @@ fee_fraction: .05 ASP means 5%. It may be greater than 1, however; but
 because it is stored as a four‐byte integer, it may not be greater than about
 42.
 """
+from bitcoin.core import VarIntSerializer
+from fractions import Fraction
 import struct
 import decimal
-
-D = decimal.Decimal
-from fractions import Fraction
 import json
 import logging
-logger = logging.getLogger(__name__)
-
-from bitcoin.core import VarIntSerializer
 
 from aspirelib.lib import exceptions
 from aspirelib.lib import config
 from aspirelib.lib import util
 from aspirelib.lib import log
 from aspirelib.lib import message_type
-from . import (bet)
+from . import bet
+
+
+D = decimal.Decimal
+logger = logging.getLogger(__name__)
 
 FORMAT = '>IdI'
 LENGTH = 4 + 8 + 4
 ID = 30
 # NOTE: Pascal strings are used for storing texts for backwards‐compatibility.
+
 
 def initialise(db):
     cursor = db.cursor()
@@ -71,7 +72,8 @@ def initialise(db):
                       timestamp_idx ON broadcasts (timestamp)
                    ''')
 
-def validate (db, source, timestamp, value, fee_fraction_int, text, block_index):
+
+def validate(db, source, timestamp, value, fee_fraction_int, text, block_index):
     problems = []
 
     # For SQLite3
@@ -85,10 +87,12 @@ def validate (db, source, timestamp, value, fee_fraction_int, text, block_index)
         if fee_fraction_int > 4294967295:
             problems.append('fee fraction greater than 42.94967295')
 
-    if timestamp < 0: problems.append('negative timestamp')
+    if timestamp < 0:
+        problems.append('negative timestamp')
 
     if not source:
         problems.append('null source address')
+
     # Check previous broadcast in this feed.
     cursor = db.cursor()
     broadcasts = list(cursor.execute('''SELECT * FROM broadcasts WHERE (status = ? AND source = ?) ORDER BY tx_index ASC''', ('valid', source)))
@@ -99,10 +103,6 @@ def validate (db, source, timestamp, value, fee_fraction_int, text, block_index)
             problems.append('locked feed')
         elif timestamp <= last_broadcast['timestamp']:
             problems.append('feed timestamps not monotonically increasing')
-
-    if not (block_index >= 317500 or config.TESTNET):  # Protocol change.
-        if len(text) > 52:
-            problems.append('text too long')
 
     if util.enabled('options_require_memo') and text and text.lower().startswith('options'):
         ops_spl = text.split(" ")
@@ -119,13 +119,15 @@ def validate (db, source, timestamp, value, fee_fraction_int, text, block_index)
 
     return problems
 
-def compose (db, source, timestamp, value, fee_fraction, text):
+
+def compose(db, source, timestamp, value, fee_fraction, text):
 
     # Store the fee fraction as an integer.
     fee_fraction_int = int(fee_fraction * 1e8)
 
     problems = validate(db, source, timestamp, value, fee_fraction_int, text, util.CURRENT_BLOCK_INDEX)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     data = message_type.pack(ID)
 
@@ -143,7 +145,8 @@ def compose (db, source, timestamp, value, fee_fraction, text):
         data += struct.pack(curr_format, timestamp, value, fee_fraction_int, text.encode('utf-8'))
     return (source, [], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     cursor = db.cursor()
 
     # Unpack message.
@@ -167,7 +170,7 @@ def parse (db, tx, message):
         except UnicodeDecodeError:
             text = ''
         status = 'valid'
-    except (struct.error) as e:
+    except:
         timestamp, value, fee_fraction_int, text = 0, None, 0, None
         status = 'invalid: could not unpack'
 
@@ -177,7 +180,8 @@ def parse (db, tx, message):
         value = min(value, config.MAX_INT)
 
         problems = validate(db, tx['source'], timestamp, value, fee_fraction_int, text, tx['block_index'])
-        if problems: status = 'invalid: ' + '; '.join(problems)
+        if problems:
+            status = 'invalid: ' + '; '.join(problems)
 
     # Lock?
     lock = False
@@ -225,11 +229,9 @@ def parse (db, tx, message):
                     pass
 
                 if change_ops:
-                    op_bindings = {
-                                'block_index': tx['block_index'],
-                                'address': tx['source'],
-                                'options': options_int
-                               }
+                    op_bindings = {'block_index': tx['block_index'],
+                                   'address': tx['source'],
+                                   'options': options_int}
                     sql = 'insert or replace into addresses(address, options, block_index) values(:address, :options, :block_index)'
                     cursor = db.cursor()
                     cursor.execute(sql, op_bindings)
@@ -334,7 +336,7 @@ def parse (db, tx, message):
                     'escrow_less_fee': None,
                     'fee': fee
                 }
-                sql='insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
+                sql = 'insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
                 cursor.execute(sql, bindings)
 
             # Settle (if not liquidated).
@@ -359,7 +361,7 @@ def parse (db, tx, message):
                     'escrow_less_fee': None,
                     'fee': fee
                 }
-                sql='insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
+                sql = 'insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
                 cursor.execute(sql, bindings)
 
         # Equal[/NotEqual] bet.
@@ -398,7 +400,7 @@ def parse (db, tx, message):
                 'escrow_less_fee': escrow_less_fee,
                 'fee': fee
             }
-            sql='insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
+            sql = 'insert into bet_match_resolutions values(:bet_match_id, :bet_match_type_id, :block_index, :settled, :bull_credit, :bear_credit, :winner, :escrow_less_fee, :fee)'
             cursor.execute(sql, bindings)
 
         # Update the bet match’s status.
@@ -407,7 +409,7 @@ def parse (db, tx, message):
                 'status': bet_match_status,
                 'bet_match_id': util.make_id(bet_match['tx0_hash'], bet_match['tx1_hash'])
             }
-            sql='update bet_matches set status = :status where id = :bet_match_id'
+            sql = 'update bet_matches set status = :status where id = :bet_match_id'
             cursor.execute(sql, bindings)
             log.message(db, tx['block_index'], 'update', 'bet_matches', bindings)
 
