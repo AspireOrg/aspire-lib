@@ -88,7 +88,6 @@ def parse_tx(db, tx):
         message = None
 
     # Protocol change.
-    rps_enabled = tx['block_index'] >= 308500 or config.TESTNET
 
     if message_type_id == send.ID:
         send.parse(db, tx, message)
@@ -110,9 +109,9 @@ def parse_tx(db, tx):
         dividend.parse(db, tx, message)
     elif message_type_id == cancel.ID:
         cancel.parse(db, tx, message)
-    elif message_type_id == rps.ID and rps_enabled:
+    elif message_type_id == rps.ID:
         rps.parse(db, tx, message)
-    elif message_type_id == rpsresolve.ID and rps_enabled:
+    elif message_type_id == rpsresolve.ID:
         rpsresolve.parse(db, tx, message)
     elif message_type_id == publish.ID and tx['block_index'] != config.MEMPOOL_BLOCK_INDEX:
         publish.parse(db, tx, message)
@@ -511,7 +510,7 @@ def get_tx_info1(tx_hex, block_index, block_parser=None):
             data_chunk_length = data_pubkey[0]  # No ord() necessary.
             data_chunk = data_pubkey[1:data_chunk_length + 1]
             data += data_chunk
-        elif len(asm) == 5 and (block_index >= 293000 or config.TESTNET):    # Protocol change.
+        elif len(asm) == 5:
             # Be strict.
             pubkeyhash = get_pubkeyhash(vout.scriptPubKey)
             if not pubkeyhash:

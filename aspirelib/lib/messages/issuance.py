@@ -225,7 +225,7 @@ def validate (db, source, destination, asset, quantity, divisible, callable_, ca
     return call_date, call_price, problems, fee, description, divisible, reissuance, reissued_asset_longname
 
 
-def compose (db, source, transfer_destination, asset, quantity, divisible, description):
+def compose(db, source, transfer_destination, asset, quantity, divisible, description):
 
     # Callability is deprecated, so for re‐issuances set relevant parameters
     # to old values; for first issuances, make uncallable.
@@ -248,7 +248,7 @@ def compose (db, source, transfer_destination, asset, quantity, divisible, descr
     # check subasset
     subasset_parent = None
     subasset_longname = None
-    if util.enabled('subassets'): # Protocol change.
+    if util.enabled('subassets'):  # Protocol change.
         subasset_parent, subasset_longname = util.parse_subasset_from_asset_name(asset)
         if subasset_longname is not None:
             # try to find an existing subasset
@@ -266,7 +266,8 @@ def compose (db, source, transfer_destination, asset, quantity, divisible, descr
                 asset = util.generate_random_asset()
 
     call_date, call_price, problems, fee, description, divisible, reissuance, reissued_asset_longname = validate(db, source, transfer_destination, asset, quantity, divisible, callable_, call_date, call_price, description, subasset_parent, subasset_longname, util.CURRENT_BLOCK_INDEX)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     asset_id = util.generate_asset_id(asset, util.CURRENT_BLOCK_INDEX)
     if subasset_longname is None or reissuance:
@@ -295,7 +296,8 @@ def compose (db, source, transfer_destination, asset, quantity, divisible, descr
         destination_outputs = []
     return (source, destination_outputs, data)
 
-def parse (db, tx, message, message_type_id):
+
+def parse(db, tx, message, message_type_id):
     issuance_parse_cursor = db.cursor()
 
     # Unpack message.
@@ -320,7 +322,7 @@ def parse (db, tx, message, message_type_id):
                 description = description.decode('utf-8')
             except UnicodeDecodeError:
                 description = ''
-        elif (tx['block_index'] > 283271 or config.TESTNET) and len(message) >= LENGTH_2: # Protocol change.
+        elif (tx['block_index'] > 283271 or config.TESTNET) and len(message) >= LENGTH_2:  # Protocol change.
             if len(message) - LENGTH_2 <= 42:
                 curr_format = FORMAT_2 + '{}p'.format(len(message) - LENGTH_2)
             else:

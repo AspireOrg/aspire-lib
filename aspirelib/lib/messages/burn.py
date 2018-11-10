@@ -1,20 +1,23 @@
 #! /usr/bin/python3
+
+from fractions import Fraction
 import json
-import struct
 import decimal
 import logging
-logger = logging.getLogger(__name__)
 
-D = decimal.Decimal
-from fractions import Fraction
+from aspirelib.lib import config
+from aspirelib.lib import exceptions
+from aspirelib.lib import util
 
-from aspirelib.lib import (config, exceptions, util)
 
 """Burn {} to earn {} during a special period of time.""".format(config.BTC, config.XCP)
 
+logger = logging.getLogger(__name__)
+D = decimal.Decimal
 ID = 60
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS burns(
                       tx_index INTEGER PRIMARY KEY,
@@ -33,7 +36,8 @@ def initialise (db):
                       address_idx ON burns (source)
                    ''')
 
-def validate (db, source, destination, quantity, block_index, overburn=False):
+
+def validate(db, source, destination, quantity, block_index, overburn=False):
     problems = []
 
     # Check destination address.
@@ -44,7 +48,8 @@ def validate (db, source, destination, quantity, block_index, overburn=False):
         problems.append('quantity must be in satoshis')
         return problems
 
-    if quantity < 0: problems.append('negative quantity')
+    if quantity < 0:
+        problems.append('negative quantity')
 
     # Try to make sure that the burned funds won't go to waste.
     if block_index < config.BURN_START - 1:
@@ -54,11 +59,13 @@ def validate (db, source, destination, quantity, block_index, overburn=False):
 
     return problems
 
-def compose (db, source, quantity, overburn=False):
+
+def compose(db, source, quantity, overburn=False):
     cursor = db.cursor()
     destination = config.UNSPENDABLE
     problems = validate(db, source, destination, quantity, util.CURRENT_BLOCK_INDEX, overburn=overburn)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     # Check that a maximum of 1 BTC total is burned per address.
     burns = list(cursor.execute('''SELECT * FROM burns WHERE (status = ? AND source = ?)''', ('valid', source)))
@@ -70,7 +77,8 @@ def compose (db, source, quantity, overburn=False):
     cursor.close()
     return (source, [(destination, quantity)], None)
 
-def parse (db, tx, MAINNET_BURNS, message=None):
+
+def parse(db, tx, MAINNET_BURNS, message=None):
     burn_parse_cursor = db.cursor()
 
     if config.TESTNET:
@@ -79,12 +87,12 @@ def parse (db, tx, MAINNET_BURNS, message=None):
 
         if status == 'valid':
             problems = validate(db, tx['source'], tx['destination'], tx['btc_amount'], tx['block_index'], overburn=False)
-            if problems: status = 'invalid: ' + '; '.join(problems)
+            if problems:
+                status = 'invalid: ' + '; '.join(problems)
 
-            if tx['btc_amount'] != None:
+            sent = 0
+            if tx['btc_amount'] is None:
                 sent = tx['btc_amount']
-            else:
-                sent = 0
 
         if status == 'valid':
             # Calculate quantity of ASP earned. (Maximum 1 BTC in total, ever.)
@@ -94,8 +102,9 @@ def parse (db, tx, MAINNET_BURNS, message=None):
             already_burned = sum([burn['burned'] for burn in burns])
             ONE = 1 * config.UNIT
             max_burn = ONE - already_burned
-            if sent > max_burn: burned = max_burn   # Exceeded maximum burn; earn what you can.
-            else: burned = sent
+            burned = sent
+            if sent > max_burn:
+                burned = max_burn   # Exceeded maximum burn; earn what you can.
 
             total_time = config.BURN_END - config.BURN_START
             partial_time = config.BURN_END - tx['block_index']
