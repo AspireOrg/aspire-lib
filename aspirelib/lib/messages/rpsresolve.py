@@ -3,18 +3,22 @@
 import binascii
 import struct
 import logging
-logger = logging.getLogger(__name__)
 import string
 
-from aspirelib.lib import (config, exceptions, util, message_type)
+from aspirelib.lib import exceptions
+from aspirelib.lib import util
+from aspirelib.lib import message_type
 from . import rps
+
+logger = logging.getLogger(__name__)
 
 # move random rps_match_id
 FORMAT = '>H16s32s32s'
 LENGTH = 2 + 16 + 32 + 32
 ID = 81
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS rpsresolves(
                       tx_index INTEGER PRIMARY KEY,
@@ -37,7 +41,8 @@ def initialise (db):
                       rps_match_id_idx ON rpsresolves (rps_match_id)
                    ''')
 
-def validate (db, source, move, random, rps_match_id):
+
+def validate(db, source, move, random, rps_match_id):
     problems = []
     rps_match = None
 
@@ -65,7 +70,7 @@ def validate (db, source, move, random, rps_match_id):
 
     rps_match = rps_matches[0]
 
-    if move<1:
+    if move < 1:
         problems.append('move must be greater than 0')
     elif move > rps_match['possible_moves']:
         problems.append('move must be lower than {}'.format(rps_match['possible_moves']))
@@ -98,11 +103,13 @@ def validate (db, source, move, random, rps_match_id):
 
     return txn, rps_match, problems
 
-def compose (db, source, move, random, rps_match_id):
+
+def compose(db, source, move, random, rps_match_id):
     tx0_hash, tx1_hash = util.parse_id(rps_match_id)
 
     txn, rps_match, problems = validate(db, source, move, random, rps_match_id)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     # Warn if down to the wire.
     time_left = rps_match['match_expire_index'] - util.CURRENT_BLOCK_INDEX
@@ -116,11 +123,11 @@ def compose (db, source, move, random, rps_match_id):
     data += struct.pack(FORMAT, move, random_bytes, tx0_hash_bytes, tx1_hash_bytes)
     return (source, [], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     cursor = db.cursor()
 
-    # Unpack message.
-    try:
+    try:  # Unpack message
         if len(message) != LENGTH:
             raise exceptions.UnpackError
         move, random, tx0_hash_bytes, tx1_hash_bytes = struct.unpack(FORMAT, message)
@@ -128,7 +135,7 @@ def parse (db, tx, message):
         rps_match_id = util.make_id(tx0_hash, tx1_hash)
         random = binascii.hexlify(random).decode('utf-8')
         status = 'valid'
-    except (exceptions.UnpackError, struct.error) as e:
+    except exceptions.UnpackError, struct.error:
         move, random, tx0_hash, tx1_hash, rps_match_id = None, None, None, None, None
         status = 'invalid: could not unpack'
 
@@ -154,7 +161,7 @@ def parse (db, tx, message):
         rps_match_status = 'concluded'
 
         if rps_match['status'] == 'pending':
-            rps_match_status = 'resolved and pending' if txn==0 else 'pending and resolved'
+            rps_match_status = 'resolved and pending' if txn == 0 else 'pending and resolved'
 
         if rps_match_status == 'concluded':
             counter_txn = 0 if txn == 1 else 1
@@ -179,6 +186,7 @@ def parse (db, tx, message):
     cursor.execute(sql, rpsresolves_bindings)
 
     cursor.close()
+
 
 # https://en.wikipedia.org/wiki/Rock-paper-scissors#Additional_weapons:
 def resolve_game(db, resovlerps1, resovlerps2):
