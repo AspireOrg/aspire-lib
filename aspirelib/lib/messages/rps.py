@@ -21,8 +21,6 @@ rps_match_id: matching id
 
 import struct
 import decimal
-D = decimal.Decimal
-import time
 import binascii
 import string
 
@@ -32,12 +30,14 @@ from aspirelib.lib import util
 from aspirelib.lib import log
 from aspirelib.lib import message_type
 
+D = decimal.Decimal
 # possible_moves wager move_random_hash expiration
 FORMAT = '>HQ32sI'
 LENGTH = 2 + 8 + 32 + 4
 ID = 80
 
-def initialise (db):
+
+def initialise(db):
     cursor = db.cursor()
 
     # RPS (Rock-Paper-Scissors)
@@ -137,7 +137,7 @@ def initialise (db):
                    ''')
 
 
-def cancel_rps (db, rps, status, block_index):
+def cancel_rps(db, rps, status, block_index):
     cursor = db.cursor()
 
     # Update status of rps.
@@ -145,7 +145,7 @@ def cancel_rps (db, rps, status, block_index):
         'status': status,
         'tx_hash': rps['tx_hash']
     }
-    sql='''UPDATE rps SET status = :status WHERE tx_hash = :tx_hash'''
+    sql = '''UPDATE rps SET status = :status WHERE tx_hash = :tx_hash'''
     cursor.execute(sql, bindings)
     log.message(db, block_index, 'update', 'rps', bindings)
 
@@ -153,7 +153,8 @@ def cancel_rps (db, rps, status, block_index):
 
     cursor.close()
 
-def update_rps_match_status (db, rps_match, status, block_index):
+
+def update_rps_match_status(db, rps_match, status, block_index):
     cursor = db.cursor()
 
     if status in ['expired', 'concluded: tie']:
@@ -174,13 +175,14 @@ def update_rps_match_status (db, rps_match, status, block_index):
         'status': status,
         'rps_match_id': rps_match['id']
     }
-    sql='UPDATE rps_matches SET status = :status WHERE id = :rps_match_id'
+    sql = 'UPDATE rps_matches SET status = :status WHERE id = :rps_match_id'
     cursor.execute(sql, bindings)
     log.message(db, block_index, 'update', 'rps_matches', bindings)
 
     cursor.close()
 
-def validate (db, source, possible_moves, wager, move_random_hash, expiration, block_index):
+
+def validate(db, source, possible_moves, wager, move_random_hash, expiration, block_index):
     problems = []
 
     if util.enabled('disable_rps'):
@@ -207,9 +209,8 @@ def validate (db, source, possible_moves, wager, move_random_hash, expiration, b
         problems.append('possible moves must be odd')
     if wager <= 0:
         problems.append('non‐positive wager')
-    if expiration < 0: problems.append('negative expiration')
-    if expiration == 0 and not (block_index >= 317500 or config.TESTNET):   # Protocol change.
-        problems.append('zero expiration')
+    if expiration < 0:
+        problems.append('negative expiration')
     if expiration > config.MAX_EXPIRATION:
         problems.append('expiration overflow')
     if len(move_random_hash_bytes) != 32:
@@ -217,21 +218,23 @@ def validate (db, source, possible_moves, wager, move_random_hash, expiration, b
 
     return problems
 
-def compose(db, source, possible_moves, wager, move_random_hash, expiration):
 
+def compose(db, source, possible_moves, wager, move_random_hash, expiration):
     problems = validate(db, source, possible_moves, wager, move_random_hash, expiration, util.CURRENT_BLOCK_INDEX)
 
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     data = message_type.pack(ID)
     data += struct.pack(FORMAT, possible_moves, wager, binascii.unhexlify(move_random_hash), expiration)
 
     return (source, [], data)
 
+
 def parse(db, tx, message):
     rps_parse_cursor = db.cursor()
-    # Unpack message.
-    try:
+
+    try:  # Unpack message
         if len(message) != LENGTH:
             raise exceptions.UnpackError
         (possible_moves, wager, move_random_hash, expiration) = struct.unpack(FORMAT, message)
@@ -254,7 +257,8 @@ def parse(db, tx, message):
                 wager = balance
 
         problems = validate(db, tx['source'], possible_moves, wager, move_random_hash, expiration, tx['block_index'])
-        if problems: status = 'invalid: {}'.format(', '.join(problems))
+        if problems:
+            status = 'invalid: {}'.format(', '.join(problems))
 
     # Debit quantity wagered. (Escrow.)
     if status == 'open':
@@ -282,23 +286,21 @@ def parse(db, tx, message):
 
     rps_parse_cursor.close()
 
-def match (db, tx, block_index):
+
+def match(db, tx, block_index):
     cursor = db.cursor()
 
-    # Get rps in question.
+    # Get rps in question
     rps = list(cursor.execute('''SELECT * FROM rps WHERE tx_index = ? AND status = ?''', (tx['tx_index'], 'open')))
     if not rps:
         cursor.close()
         return
-    else:
-        assert len(rps) == 1
+    assert len(rps) == 1
     tx1 = rps[0]
-    possible_moves = tx1['possible_moves']
-    wager = tx1['wager']
-    tx1_status = 'open'
 
     # Get rps match
-    bindings = (possible_moves, 'open', wager, tx1['source'])
+    bindings = (tx1['possible_moves'], 'open', tx1['wager'], tx1['source'])
+
     # dont match twice same RPS
     already_matched = []
     old_rps_matches = cursor.execute('''SELECT * FROM rps_matches WHERE tx0_hash = ? OR tx1_hash = ?''', (tx1['tx_hash'], tx1['tx_hash']))
@@ -335,8 +337,8 @@ def match (db, tx, block_index):
             'tx1_address': tx1['source'],
             'tx0_move_random_hash': tx0['move_random_hash'],
             'tx1_move_random_hash': tx1['move_random_hash'],
-            'wager': wager,
-            'possible_moves': possible_moves,
+            'wager': tx1['wager'],
+            'possible_moves': tx1['possible_moves'],
             'tx0_block_index': tx0['block_index'],
             'tx1_block_index': tx1['block_index'],
             'block_index': block_index,
@@ -353,7 +355,8 @@ def match (db, tx, block_index):
 
     cursor.close()
 
-def expire (db, block_index):
+
+def expire(db, block_index):
     cursor = db.cursor()
 
     # Expire rps and give refunds for the quantity wager.
