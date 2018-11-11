@@ -9,11 +9,12 @@ from aspirelib.lib.messages.scriptlib import rlp
 from aspirelib.lib.messages.scriptlib import utils
 
 import logging
-logger = logging.getLogger(__name__)
 import pickle
 
-# NOTE: Not logging most of the specifics here.
+logger = logging.getLogger(__name__)
 
+
+# NOTE: Not logging most of the specifics here.
 class Block(object):
 
     def __init__(self, db, block_hash):
@@ -51,7 +52,6 @@ class Block(object):
         cursor.execute('''DELETE FROM postqueue WHERE rowid = (SELECT MIN(rowid) FROM postqueue)''')    # Delete first entry.
         return pickle.loads(first_message_pickled)
 
-
     def suicides_append(self, contract_id):
         cursor = self.db.cursor()
         cursor.execute('''INSERT INTO suicides VALUES(:contract_id)''', {'contract_id': contract_id})
@@ -70,7 +70,7 @@ class Block(object):
     def get_storage_data(self, contract_id, key=None):
         cursor = self.db.cursor()
 
-        if key == None:
+        if key is None:
             cursor.execute('''SELECT * FROM storage WHERE contract_id = ? ''', (contract_id,))
             storages = list(cursor)
             return storages
@@ -92,53 +92,47 @@ class Block(object):
 
         key = key.to_bytes(32, byteorder='big')
         value = value.to_bytes(32, byteorder='big')
-
         cursor = self.db.cursor()
         cursor.execute('''SELECT * FROM storage WHERE contract_id = ? AND key = ?''', (contract_id, key))
         storages = list(cursor)
-        if storages:    # Update value.
-            bindings = {
-                'contract_id': contract_id,
-                'key': key,
-                'value': value
-                }
+
+        if storages:  # Update value.
+            bindings = {'contract_id': contract_id,
+                        'key': key,
+                        'value': value}
             log.message(self.db, self.number, 'update', 'storage', bindings)
-            sql='''UPDATE storage SET value = :value WHERE contract_id = :contract_id AND key = :key'''
+            sql = '''UPDATE storage SET value = :value WHERE contract_id = :contract_id AND key = :key'''
             cursor.execute(sql, bindings)
-        else:           # Insert value.
-            bindings = {
-                'contract_id': contract_id,
-                'key': key,
-                'value': value
-                }
+        else:  # Insert value.
+            bindings = {'contract_id': contract_id,
+                        'key': key,
+                        'value': value}
             log.message(self.db, self.number, 'insert', 'storage', bindings)
-            sql='''INSERT INTO storage VALUES (:contract_id, :key, :value)'''
+            sql = '''INSERT INTO storage VALUES (:contract_id, :key, :value)'''
             cursor.execute(sql, bindings)
 
         storages = cursor.execute('''SELECT * FROM storage WHERE contract_id = ? AND key = ?''', (contract_id, key))
 
         return value
 
-
     def account_to_dict(self, address):
         return {'nonce': Block.get_nonce(self, address), 'balance': Block.get_balance(self, address), 'storage': Block.get_storage_data(self, address), 'code': utils.hexprint(Block.get_code(self, address))}
 
-    def get_code (self, contract_id):
+    def get_code(self, contract_id):
         cursor = self.db.cursor()
         cursor.execute('''SELECT * FROM contracts WHERE contract_id = ?''', (contract_id,))
         contracts = list(cursor)
 
         if not contracts:
             return b''
-        else: code = contracts[0]['code']
-
-        return code
+        return contracts[0]['code']
 
     def get_nonce(self, address):
         cursor = self.db.cursor()
         nonces = list(cursor.execute('''SELECT * FROM nonces WHERE (address = ?)''', (address,)))
-        if not nonces: return 0
-        else: return nonces[0]['nonce']
+        if not nonces:
+            return 0
+        return nonces[0]['nonce']
 
     def set_nonce(self, address, nonce):
         cursor = self.db.cursor()
