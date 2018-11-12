@@ -177,7 +177,7 @@ def parse(db, tx, message):
             status = 'valid'
         else:
             raise exceptions.UnpackError
-    except exceptions.UnpackError, exceptions.AssetNameError, struct.error:
+    except(exceptions.UnpackError, exceptions.AssetNameError, struct.error):
         dividend_asset, quantity_per_unit, asset = None, None, None
         status = 'invalid: could not unpack'
 

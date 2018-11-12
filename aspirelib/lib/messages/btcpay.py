@@ -122,7 +122,7 @@ def parse(db, tx, message):
         tx0_hash, tx1_hash = binascii.hexlify(tx0_hash_bytes).decode('utf-8'), binascii.hexlify(tx1_hash_bytes).decode('utf-8')
         order_match_id = util.make_id(tx0_hash, tx1_hash)
         status = 'valid'
-    except exceptions.UnpackError, struct.error:
+    except(exceptions.UnpackError, struct.error):
         tx0_hash, tx1_hash, order_match_id = None, None, None
         status = 'invalid: could not unpack'
 

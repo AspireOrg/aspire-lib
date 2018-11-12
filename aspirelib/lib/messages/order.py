@@ -382,7 +382,7 @@ def parse(db, tx, message):
         give_asset = util.get_asset_name(db, give_id, tx['block_index'])
         get_asset = util.get_asset_name(db, get_id, tx['block_index'])
         status = 'open'
-    except exceptions.UnpackError, exceptions.AssetNameError, struct.error:
+    except(exceptions.UnpackError, exceptions.AssetNameError, struct.error):
         give_asset, give_quantity, get_asset, get_quantity, expiration, fee_required = 0, 0, 0, 0, 0, 0
         status = 'invalid: could not unpack'
 
