@@ -445,28 +445,28 @@ def initialise(db):
     cursor.close()
 
 
-def get_tx_info(tx_hex, block_parser=None, block_index=None):
+def get_tx_info(tx_hex, block_parser=None, block_index=None, db=None):
     """Get the transaction info. Returns normalized None data for DecodeError and BTCOnlyError."""
     try:
-        return _get_tx_info(tx_hex, block_parser, block_index)
+        return _get_tx_info(tx_hex, block_parser, block_index, db=db)
     except (DecodeError, BTCOnlyError):
         # NOTE: For debugging, logger.debug('Could not decode: ' + str(e))
         return b'', None, None, None, None
 
 
-def _get_tx_info(tx_hex, block_parser=None, block_index=None):
+def _get_tx_info(tx_hex, block_parser=None, block_index=None, db=None):
     """Get the transaction info. Calls one of two subfunctions depending on signature type."""
     if not block_index:
         block_index = util.CURRENT_BLOCK_INDEX
     if util.enabled('p2sh_addresses', block_index=block_index):   # Protocol change.
-        return get_tx_info3(tx_hex, block_parser=block_parser)
+        return get_tx_info3(tx_hex, block_parser=block_parser, db=db)
     elif util.enabled('multisig_addresses', block_index=block_index):   # Protocol change.
-        return get_tx_info2(tx_hex, block_parser=block_parser)
+        return get_tx_info2(tx_hex, block_parser=block_parser, db=db)
     else:
-        return get_tx_info1(tx_hex, block_index, block_parser=block_parser)
+        return get_tx_info1(tx_hex, block_index, block_parser=block_parser, db=db)
 
 
-def get_tx_info1(tx_hex, block_index, block_parser=None):
+def get_tx_info1(tx_hex, block_index, block_parser=None, db=None):
     """Get singlesig transaction info.
     The destination, if it exists, always comes before the data output; the
     change, if it exists, always comes after.
@@ -584,11 +584,11 @@ def get_tx_info1(tx_hex, block_index, block_parser=None):
     return source, destination, btc_amount, fee, data
 
 
-def get_tx_info3(tx_hex, block_parser=None):
-    return get_tx_info2(tx_hex, block_parser=block_parser, p2sh_support=True)
+def get_tx_info3(tx_hex, block_parser=None, db=None):
+    return get_tx_info2(tx_hex, block_parser=block_parser, p2sh_support=True, db=db)
 
 
-def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False):
+def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None):
     """Get multisig transaction info.
     The destinations, if they exists, always comes before the data output; the
     change, if it exists, always comes after.
@@ -633,9 +633,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False):
         return destination, data
 
     def decode_scripthash(asm):
-        print('P2SH_ADDRESSVERSION', config.P2SH_ADDRESSVERSION)
         destination = script.base58_check_encode(binascii.hexlify(asm[1]).decode('utf-8'), config.P2SH_ADDRESSVERSION)
-
         return destination, None
 
     def decode_checkmultisig(asm):
@@ -657,13 +655,14 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False):
 
     # Ignore coinbase transactions.
     if ctx.is_coinbase():
-        if len(ctx.vout) == 2 and ctx.vout[1].nValue > 0:
+        # ASP Mining, pay out same as GASP pays
+        if db and len(ctx.vout) == 2 and ctx.vout[1].nValue > 0:
             asm = script.get_asm(ctx.vout[1].scriptPubKey)
             if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
                 del asm[0]
                 destination, new_data = decode_scripthash(asm)
                 print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
-                # util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
+                util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
         raise DecodeError('coinbase transaction')
 
     # Get destinations and data outputs.
@@ -925,7 +924,7 @@ def list_tx(db, block_hash, block_index, block_time, tx_hash, tx_index, tx_hex=N
     # Get the important details about each transaction.
     if tx_hex is None:
         tx_hex = backend.getrawtransaction(tx_hash)
-    source, destination, btc_amount, fee, data = get_tx_info(tx_hex)
+    source, destination, btc_amount, fee, data = get_tx_info(tx_hex, db=db)
 
     # For mempool
     if block_hash is None:

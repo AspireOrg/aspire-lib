@@ -505,7 +505,7 @@ def value_input(quantity, asset, divisible):
 
 
 def value_in(db, quantity, asset, divisible=None):
-    if asset not in ['leverage', 'value', 'fraction', 'price', 'odds'] and divisible == None:
+    if asset not in ['leverage', 'value', 'fraction', 'price', 'odds'] and divisible is not None:
         divisible = is_divisible(db, asset)
     return value_input(quantity, asset, divisible)
 
@@ -607,8 +607,8 @@ def holders(db, asset):
 def xcp_created(db):
     """Return number of ASP created thus far."""
     cursor = db.cursor()
-    cursor.execute('''SELECT SUM(earned) AS total FROM burns \
-                      WHERE (status = ?)''', ('valid',))
+    cursor.execute('''SELECT SUM(quantity) AS total FROM credits WHERE (calling_function = ? AND asset = ?)''', ('pow', config.XCP))
+    # print('xcp_created', list(cursor))
     total = list(cursor)[0]['total'] or 0
     cursor.close()
     return total
@@ -617,18 +617,19 @@ def xcp_created(db):
 def xcp_destroyed(db):
     """Return number of ASP destroyed thus far."""
     cursor = db.cursor()
+
     # Destructions
-    cursor.execute('''SELECT SUM(quantity) AS total FROM destructions \
-                      WHERE (status = ? AND asset = ?)''', ('valid', config.XCP))
+    cursor.execute('''SELECT SUM(quantity) AS total FROM destructions WHERE (status = ? AND asset = ?)''', ('valid', config.XCP))
     destroyed_total = list(cursor)[0]['total'] or 0
+
     # Subtract issuance fees.
-    cursor.execute('''SELECT SUM(fee_paid) AS total FROM issuances\
-                      WHERE status = ?''', ('valid',))
+    cursor.execute('''SELECT SUM(fee_paid) AS total FROM issuances WHERE status = ?''', ('valid',))
     issuance_fee_total = list(cursor)[0]['total'] or 0
+
     # Subtract dividend fees.
-    cursor.execute('''SELECT SUM(fee_paid) AS total FROM dividends\
-                      WHERE status = ?''', ('valid',))
+    cursor.execute('''SELECT SUM(fee_paid) AS total FROM dividends WHERE status = ?''', ('valid',))
     dividend_fee_total = list(cursor)[0]['total'] or 0
+
     cursor.close()
     return destroyed_total + issuance_fee_total + dividend_fee_total
 
