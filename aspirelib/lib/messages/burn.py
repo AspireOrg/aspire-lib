@@ -29,12 +29,8 @@ def initialise(db):
                       status TEXT,
                       FOREIGN KEY (tx_index, tx_hash, block_index) REFERENCES transactions(tx_index, tx_hash, block_index))
                    ''')
-    cursor.execute('''CREATE INDEX IF NOT EXISTS
-                      status_idx ON burns (status)
-                   ''')
-    cursor.execute('''CREATE INDEX IF NOT EXISTS
-                      address_idx ON burns (source)
-                   ''')
+    cursor.execute('''CREATE INDEX IF NOT EXISTS status_idx ON burns (status)''')
+    cursor.execute('''CREATE INDEX IF NOT EXISTS address_idx ON burns (source)''')
 
 
 def validate(db, source, destination, quantity, block_index, overburn=False):

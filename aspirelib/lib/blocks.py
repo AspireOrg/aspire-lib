@@ -71,13 +71,6 @@ UNDOLOG_TABLES = copy.copy(TABLES)
 UNDOLOG_TABLES.remove('messages')
 UNDOLOG_TABLES += ['balances']
 
-CURR_DIR = os.path.dirname(os.path.realpath(__file__))
-with open(CURR_DIR + '/../mainnet_burns.csv', 'r') as f:
-    mainnet_burns_reader = csv.DictReader(f)
-    MAINNET_BURNS = {}
-    for line in mainnet_burns_reader:
-        MAINNET_BURNS[line['tx_hash']] = line
-
 
 def parse_tx(db, tx):
     """Parse the transaction, return True for success."""
@@ -90,9 +83,9 @@ def parse_tx(db, tx):
         if len(tx['destination'].split('-')) > 1:
             return
 
-    # Burns.
+    # Dont enable burns
     if tx['destination'] == config.UNSPENDABLE:
-        burn.parse(db, tx, MAINNET_BURNS)
+        # burn.parse(db, tx)
         return
 
     if len(tx['data']) > 1:
@@ -529,6 +522,7 @@ def get_tx_info1(tx_hex, block_index, block_parser=None):
 
             if ctx.is_coinbase():
                 raise DecodeError('coinbase transaction')
+
             obj1 = ARC4.new(ctx.vin[0].prevout.hash[::-1])
             data_pubkey = obj1.decrypt(pubkeyhash)
             if data_pubkey[1:9] == config.PREFIX or pubkeyhash_encoding:
@@ -639,6 +633,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False):
         return destination, data
 
     def decode_scripthash(asm):
+        print('P2SH_ADDRESSVERSION', config.P2SH_ADDRESSVERSION)
         destination = script.base58_check_encode(binascii.hexlify(asm[1]).decode('utf-8'), config.P2SH_ADDRESSVERSION)
 
         return destination, None
@@ -662,6 +657,13 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False):
 
     # Ignore coinbase transactions.
     if ctx.is_coinbase():
+        if len(ctx.vout) == 2 and ctx.vout[1].nValue > 0:
+            asm = script.get_asm(ctx.vout[1].scriptPubKey)
+            if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
+                del asm[0]
+                destination, new_data = decode_scripthash(asm)
+                print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
+                # util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
         raise DecodeError('coinbase transaction')
 
     # Get destinations and data outputs.
@@ -1170,8 +1172,7 @@ def follow(db):
                 backend_parent = bitcoinlib.core.b2lx(current_cblock.hashPrevBlock)
 
                 # DB parent hash.
-                blocks = list(cursor.execute('''SELECT * FROM blocks
-                                                WHERE block_index = ?''', (current_index - 1,)))
+                blocks = list(cursor.execute('''SELECT * FROM blocks WHERE block_index = ?''', (current_index - 1,)))
                 if len(blocks) != 1:  # For empty DB.
                     break
                 db_parent = blocks[0]['block_hash']
