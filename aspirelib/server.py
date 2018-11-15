@@ -306,8 +306,6 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.ADDRESSVERSION = config.ADDRESSVERSION_TESTNET
         config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_TESTNET
         config.BLOCK_FIRST = config.BLOCK_FIRST_TESTNET
-        config.BURN_START = config.BURN_START_TESTNET
-        config.BURN_END = config.BURN_END_TESTNET
         config.UNSPENDABLE = config.UNSPENDABLE_TESTNET
         config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
     else:
@@ -315,8 +313,6 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.ADDRESSVERSION = config.ADDRESSVERSION_MAINNET
         config.P2SH_ADDRESSVERSION = config.P2SH_ADDRESSVERSION_MAINNET
         config.BLOCK_FIRST = config.BLOCK_FIRST_MAINNET
-        config.BURN_START = config.BURN_START_MAINNET
-        config.BURN_END = config.BURN_END_MAINNET
         config.UNSPENDABLE = config.UNSPENDABLE_MAINNET
         config.P2SH_DUST_RETURN_PUBKEY = p2sh_dust_return_pubkey
 

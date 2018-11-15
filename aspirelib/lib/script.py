@@ -268,6 +268,12 @@ def get_checkmultisig(asm):
 def scriptpubkey_to_address(scriptpubkey):
     asm = get_asm(scriptpubkey)
 
+    # if asm[0] == 'OP_DUP':
+    #     del asm[0]
+    #     del asm[-1]
+        # print(len(asm))
+        # print(asm)
+
     if asm[-1] == 'OP_CHECKSIG':
         try:
             checksig = get_checksig(asm)
@@ -281,9 +287,9 @@ def scriptpubkey_to_address(scriptpubkey):
         pubkeyhashes = [pubkey_to_pubkeyhash(pubkey) for pubkey in pubkeys]
         return construct_array(signatures_required, pubkeyhashes, len(pubkeyhashes))
 
-    elif len(asm) == 3 and asm[0] == 'OP_HASH160' and asm[2] == 'OP_EQUAL':
+    elif len(asm) == 3 and asm[0] == 'OP_HASH160' and (asm[2] == 'OP_EQUAL' or asm[2] == 'OP_EQUALVERIFY'):
+        # print(base58_check_encode(binascii.hexlify(asm[1]).decode('utf-8'), config.P2SH_ADDRESSVERSION))
         return base58_check_encode(binascii.hexlify(asm[1]).decode('utf-8'), config.P2SH_ADDRESSVERSION)
-
     return None
 
 

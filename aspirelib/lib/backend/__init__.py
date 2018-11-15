@@ -20,6 +20,7 @@ from aspirelib.lib.backend import addrindex, btcd
 
 MEMPOOL_CACHE_INITIALIZED = False
 
+
 def sortkeypicker(keynames):
     """http://stackoverflow.com/a/1143719"""
     negate = set()
@@ -27,41 +28,52 @@ def sortkeypicker(keynames):
         if k[:1] == '-':
             keynames[i] = k[1:]
             negate.add(k[1:])
+
     def getit(adict):
-       composite = [adict[k] for k in keynames]
-       for i, (k, v) in enumerate(zip(keynames, composite)):
-           if k in negate:
-               composite[i] = -v
-       return composite
+        composite = [adict[k] for k in keynames]
+        for i, (k, v) in enumerate(zip(keynames, composite)):
+            if k in negate:
+                composite[i] = -v
+        return composite
     return getit
+
 
 def BACKEND():
     return sys.modules['aspirelib.lib.backend.{}'.format(config.BACKEND_NAME)]
 
+
 def getblockcount():
     return BACKEND().getblockcount()
 
+
 def getblockhash(blockcount):
     return BACKEND().getblockhash(blockcount)
+
 
 def getblock(block_hash):
     block_hex = BACKEND().getblock(block_hash)
     return CBlock.deserialize(util.unhexlify(block_hex))
 
+
 def searchrawtransactions(address, unconfirmed=False):
     return BACKEND().searchrawtransactions(address, unconfirmed=unconfirmed)
+
 
 def getrawtransaction(tx_hash, verbose=False, skip_missing=False):
     return BACKEND().getrawtransaction(tx_hash, verbose=verbose, skip_missing=skip_missing)
 
+
 def getrawtransaction_batch(txhash_list, verbose=False, skip_missing=False):
     return BACKEND().getrawtransaction_batch(txhash_list, verbose=verbose, skip_missing=skip_missing)
+
 
 def sendrawtransaction(tx_hex):
     return BACKEND().sendrawtransaction(tx_hex)
 
+
 def getrawmempool():
     return BACKEND().getrawmempool()
+
 
 def extract_addresses(txhash_list):
     return BACKEND().extract_addresses(txhash_list)
@@ -79,11 +91,14 @@ def fee_per_kb(nblocks):
 def refresh_unconfirmed_transactions_cache(mempool_txhash_list):
     return BACKEND().refresh_unconfirmed_transactions_cache(mempool_txhash_list)
 
+
 def deserialize(tx_hex):
     return bitcoinlib.core.CTransaction.deserialize(binascii.unhexlify(tx_hex))
 
+
 def serialize(ctx):
     return bitcoinlib.core.CTransaction.serialize(ctx)
+
 
 def is_valid(address):
     try:
@@ -92,8 +107,10 @@ def is_valid(address):
     except script.AddressError:
         return False
 
+
 def get_txhash_list(block):
     return [bitcoinlib.core.b2lx(ctx.GetHash()) for ctx in block.vtx]
+
 
 def get_tx_list(block):
     raw_transactions = {}
@@ -108,6 +125,7 @@ def get_tx_list(block):
 
     return (tx_hash_list, raw_transactions)
 
+
 def sort_unspent_txouts(unspent, unconfirmed=False):
     # Filter out all dust amounts to avoid bloating the resultant transaction
     unspent = list(filter(lambda x: x['amount'] * config.UNIT > config.DEFAULT_MULTISIG_DUST_SIZE, unspent))
@@ -116,9 +134,11 @@ def sort_unspent_txouts(unspent, unconfirmed=False):
 
     return unspent
 
+
 def get_btc_supply(normalize=False):
     """returns the total supply of {}""".format(config.BTC)
     return int(100000000 * config.UNIT)
+
 
 def is_scriptpubkey_spendable(scriptpubkey_hex, source, multisig_inputs=False):
     c_scriptpubkey = bitcoinlib.core.CScript(bitcoinlib.core.x(scriptpubkey_hex))
@@ -132,14 +152,14 @@ def is_scriptpubkey_spendable(scriptpubkey_hex, source, multisig_inputs=False):
         return False
 
     source = script.make_canonical(source)
-
     if vout_address == source:
         return True
-
     return False
+
 
 class MempoolError(Exception):
     pass
+
 
 def get_unspent_txouts(source, unconfirmed=False, multisig_inputs=False, unspent_tx_hash=None):
     """returns a list of unspent outputs for a specific address
@@ -168,7 +188,7 @@ def get_unspent_txouts(source, unconfirmed=False, multisig_inputs=False, unspent
         for vout in tx['vout']:
             txid = tx['txid']
             confirmations = tx['confirmations'] if 'confirmations' in tx else 0
-            outkey = '{}{}'.format(txid, vout['n']) # edge case: avoid duplicate output
+            outkey = '{}{}'.format(txid, vout['n'])  # edge case: avoid duplicate output
             if outkey not in outputs or outputs[outkey]['confirmations'] < confirmations:
                 coin = {
                         'amount': float(vout['value']),
@@ -190,6 +210,7 @@ def get_unspent_txouts(source, unconfirmed=False, multisig_inputs=False, unspent
     vins = {(vin['txid'], vin['vout']) for tx in raw_transactions for vin in tx['vin'] if 'coinbase' not in vin}
     unspent = []
     for output in outputs:
+        # print('output', output)
         if (output['txid'], output['vout']) not in vins:
             unspent.append(output)
     unspent = sorted(unspent, key=lambda x: x['txid'])

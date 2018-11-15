@@ -14,7 +14,6 @@ import collections
 import platform
 from Crypto.Cipher import ARC4
 import apsw
-import csv
 import copy
 import http
 
@@ -37,7 +36,7 @@ from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
-from aspirelib.lib.messages import burn
+from aspirelib.lib.messages import proofofwork
 from aspirelib.lib.messages import cancel
 from aspirelib.lib.messages import rps
 from aspirelib.lib.messages import rpsresolve
@@ -60,7 +59,7 @@ logger = logging.getLogger(__name__)
 TABLES = ['credits', 'debits', 'messages'] + \
          ['bet_match_resolutions', 'order_match_expirations', 'order_matches',
           'order_expirations', 'orders', 'bet_match_expirations', 'bet_matches',
-          'bet_expirations', 'bets', 'broadcasts', 'btcpays', 'burns',
+          'bet_expirations', 'bets', 'broadcasts', 'btcpays', 'proofofwork',
           'cancels', 'dividends', 'issuances', 'sends',
           'rps_match_expirations', 'rps_expirations', 'rpsresolves',
           'rps_matches', 'rps', 'executions', 'storage', 'suicides', 'nonces',
@@ -83,9 +82,7 @@ def parse_tx(db, tx):
         if len(tx['destination'].split('-')) > 1:
             return
 
-    # Dont enable burns
     if tx['destination'] == config.UNSPENDABLE:
-        # burn.parse(db, tx)
         return
 
     if len(tx['data']) > 1:
@@ -178,6 +175,7 @@ def parse_block(db, block_index, block_time,
     undolog_cursor.close()
 
     # Expire orders, bets and rps.
+    proofofwork.confirm(db, block_index)
     order.expire(db, block_index)
     bet.expire(db, block_index, block_time)
     rps.expire(db, block_index)
@@ -376,7 +374,7 @@ def initialise(db):
     publish.initialise(db)
     execute.initialise(db)
     dividend.initialise(db)
-    burn.initialise(db)
+    proofofwork.initialise(db)
     cancel.initialise(db)
     rps.initialise(db)
     rpsresolve.initialise(db)
@@ -459,7 +457,7 @@ def _get_tx_info(tx_hex, block_parser=None, block_index=None, db=None):
     if not block_index:
         block_index = util.CURRENT_BLOCK_INDEX
     if util.enabled('p2sh_addresses', block_index=block_index):   # Protocol change.
-        return get_tx_info3(tx_hex, block_parser=block_parser, db=db)
+        return get_tx_info3(tx_hex, block_parser=block_parser, db=db, block_index=block_index)
     elif util.enabled('multisig_addresses', block_index=block_index):   # Protocol change.
         return get_tx_info2(tx_hex, block_parser=block_parser, db=db)
     else:
@@ -584,11 +582,11 @@ def get_tx_info1(tx_hex, block_index, block_parser=None, db=None):
     return source, destination, btc_amount, fee, data
 
 
-def get_tx_info3(tx_hex, block_parser=None, db=None):
-    return get_tx_info2(tx_hex, block_parser=block_parser, p2sh_support=True, db=db)
+def get_tx_info3(tx_hex, block_parser=None, db=None, block_index=None):
+    return get_tx_info2(tx_hex, block_parser=block_parser, p2sh_support=True, db=db, block_index=block_index)
 
 
-def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None):
+def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_index=None):
     """Get multisig transaction info.
     The destinations, if they exists, always comes before the data output; the
     change, if it exists, always comes after.
@@ -661,8 +659,10 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None):
             if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
                 del asm[0]
                 destination, new_data = decode_scripthash(asm)
-                print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
-                util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
+                # print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
+                print('block_index', block_index)
+                proofofwork.parse(db, destination, ctx.vout[1].nValue, block_index, ctx.GetHash())
+                # util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
         raise DecodeError('coinbase transaction')
 
     # Get destinations and data outputs.

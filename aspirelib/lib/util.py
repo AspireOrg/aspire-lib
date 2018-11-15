@@ -607,9 +607,8 @@ def holders(db, asset):
 def xcp_created(db):
     """Return number of ASP created thus far."""
     cursor = db.cursor()
-    # TODO: Rewrite burns to act as a POW tracker so that its possible to credit ASP after a confirmation period and not immediately on block creation
-    # cursor.execute('''SELECT SUM(earned) AS total FROM burns WHERE (status = ?)''', ('valid',))
-    cursor.execute('''SELECT SUM(quantity) AS total FROM credits WHERE (calling_function = ? AND asset = ?)''', ('pow', config.XCP))
+    cursor.execute('''SELECT SUM(mined) AS total FROM proofofwork WHERE (status = ?)''', ('confirmed',))
+    # cursor.execute('''SELECT SUM(quantity) AS total FROM credits WHERE (calling_function = ? AND asset = ?)''', ('pow', config.XCP))
     # print('xcp_created', list(cursor))
     total = list(cursor)[0]['total'] or 0
     cursor.close()

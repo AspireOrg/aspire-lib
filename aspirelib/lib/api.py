@@ -6,22 +6,16 @@ problem.
 """
 
 import sys
-import os
 import threading
 import decimal
 import time
 import json
 import re
-import requests
 import collections
 import logging
-logger = logging.getLogger(__name__)
 from logging import handlers as logging_handlers
-D = decimal.Decimal
 import binascii
 
-import struct
-import apsw
 import flask
 from flask_httpauth import HTTPBasicAuth
 import jsonrpc
@@ -47,22 +41,25 @@ from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
-from aspirelib.lib.messages import burn
+from aspirelib.lib.messages import proofofwork
 from aspirelib.lib.messages import cancel
 from aspirelib.lib.messages import rps
 from aspirelib.lib.messages import rpsresolve
 from aspirelib.lib.messages import publish
 from aspirelib.lib.messages import execute
 
+D = decimal.Decimal
+logger = logging.getLogger(__name__)
+
 API_TABLES = ['assets', 'balances', 'credits', 'debits', 'bets', 'bet_matches',
-              'broadcasts', 'btcpays', 'burns', 'cancels',
+              'broadcasts', 'btcpays', 'proofofwork', 'cancels',
               'dividends', 'issuances', 'orders', 'order_matches', 'sends',
               'bet_expirations', 'order_expirations', 'bet_match_expirations',
               'order_match_expirations', 'bet_match_resolutions', 'rps',
               'rpsresolves', 'rps_matches', 'rps_expirations', 'rps_match_expirations',
               'mempool']
 
-API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'burn', 'cancel',
+API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'proofofwork', 'cancel',
                     'dividend', 'issuance', 'order', 'send',
                     'rps', 'rpsresolve', 'publish', 'execute']
 
@@ -72,12 +69,14 @@ COMMONS_ARGS = ['encoding', 'fee_per_kb', 'regular_dust_size',
                 'estimate_fee_per_kb', 'estimate_fee_per_kb_nblocks',
                 'unspent_tx_hash', 'custom_inputs', 'dust_return_pubkey', 'disable_utxo_locks', 'extended_tx_info']
 
-API_MAX_LOG_SIZE = 10 * 1024 * 1024 #max log size of 20 MB before rotation (make configurable later)
-API_MAX_LOG_COUNT = 10
-JSON_RPC_ERROR_API_COMPOSE = -32001 #code to use for error composing transaction result
 
-current_api_status_code = None #is updated by the APIStatusPoller
-current_api_status_response_json = None #is updated by the APIStatusPoller
+API_MAX_LOG_SIZE = 10 * 1024 * 1024  # max log size of 20 MB before rotation (make configurable later)
+API_MAX_LOG_COUNT = 10
+JSON_RPC_ERROR_API_COMPOSE = -32001  # code to use for error composing transaction result
+
+current_api_status_code = None  # is updated by the APIStatusPoller
+current_api_status_response_json = None  # is updated by the APIStatusPoller
+
 
 class APIError(Exception):
     pass
@@ -85,6 +84,8 @@ class APIError(Exception):
 
 class BackendError(Exception):
     pass
+
+
 def check_backend_state():
     """Checks blocktime of last block to see if {} Core is running behind.""".format(config.BTC_NAME)
     block_count = backend.getblockcount()
@@ -95,8 +96,11 @@ def check_backend_state():
         raise BackendError('AspireGasd is running about {} hours behind.'.format(round(time_behind / 3600)))
     logger.debug('Backend state check passed.')
 
+
 class DatabaseError(Exception):
     pass
+
+
 def check_database_state(db, blockcount):
     """Checks {} database to see if is caught up with backend.""".format(config.XCP_NAME)
     if util.CURRENT_BLOCK_INDEX + 1 < blockcount:
@@ -126,11 +130,12 @@ def db_query(db, statement, bindings=(), callback=None, **callback_args):
     cursor.close()
     return results
 
+
 def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=None, start_block=None, end_block=None,
-              status=None, limit=1000, offset=0, show_expired=True):
+             status=None, limit=1000, offset=0, show_expired=True):
     """SELECT * FROM wrapper. Filters results based on a filter data structure (as used by the API)."""
 
-    if filters == None:
+    if filters is None:
         filters = []
 
     def value_to_marker(value):
@@ -157,8 +162,8 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
     if order_by and not re.compile('^[a-z0-9_]+$').match(order_by):
         raise APIError('Invalid order_by, must be a field name')
 
-    if isinstance(filters, dict): #single filter entry, convert to a one entry list
-        filters = [filters,]
+    if isinstance(filters, dict):  # single filter entry, convert to a one entry list
+        filters = [filters]
     elif not isinstance(filters, list):
         filters = []
 
@@ -166,7 +171,7 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
     new_filters = []
     for filter_ in filters:
         if type(filter_) in (list, tuple) and len(filter_) in [3, 4]:
-            new_filter = {'field': filter_[0], 'op': filter_[1], 'value':  filter_[2]}
+            new_filter = {'field': filter_[0], 'op': filter_[1], 'value': filter_[2]}
             if len(filter_) == 4:
                 new_filter['case_sensitive'] = filter_[3]
             new_filters.append(new_filter)
@@ -178,7 +183,7 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
 
     # validate filter(s)
     for filter_ in filters:
-        for field in ['field', 'op', 'value']: #should have all fields
+        for field in ['field', 'op', 'value']:  # should have all fields
             if field not in filter_:
                 raise APIError("A specified filter is missing the '%s' field" % field)
         if not isinstance(filter_['value'], (str, int, float, list)):
@@ -201,7 +206,7 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
     conditions = []
     for filter_ in filters:
         case_sensitive = False if 'case_sensitive' not in filter_ else filter_['case_sensitive']
-        if filter_['op'] == 'LIKE' and case_sensitive == False:
+        if filter_['op'] == 'LIKE' and case_sensitive is False:
             filter_['field'] = '''UPPER({})'''.format(filter_['field'])
             filter_['value'] = filter_['value'].upper()
         marker = value_to_marker(filter_['value'])
@@ -213,17 +218,17 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
     # AND filters
     more_conditions = []
     if table not in ['balances', 'order_matches', 'bet_matches']:
-        if start_block != None:
+        if start_block is not None:
             more_conditions.append('''block_index >= ?''')
             bindings.append(start_block)
-        if end_block != None:
+        if end_block is not None:
             more_conditions.append('''block_index <= ?''')
             bindings.append(end_block)
     elif table in ['order_matches', 'bet_matches']:
-        if start_block != None:
+        if start_block is not None:
             more_conditions.append('''tx0_block_index >= ?''')
             bindings.append(start_block)
-        if end_block != None:
+        if end_block is not None:
             more_conditions.append('''tx1_block_index <= ?''')
             bindings.append(end_block)
 
@@ -252,16 +257,15 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
         statement += ''' {}'''.format(''' AND '''.join(all_conditions))
 
     # ORDER BY
-    if order_by != None:
+    if order_by is not None:
         statement += ''' ORDER BY {}'''.format(order_by)
-        if order_dir != None:
+        if order_dir is not None:
             statement += ''' {}'''.format(order_dir.upper())
     # LIMIT
     if limit:
         statement += ''' LIMIT {}'''.format(limit)
         if offset:
             statement += ''' OFFSET {}'''.format(offset)
-
 
     query_result = db_query(db, statement, tuple(bindings))
 
@@ -270,6 +274,7 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
         return adjust_get_sends_results(query_result)
 
     return query_result
+
 
 def adjust_get_sends_memo_filters(filters):
     """Convert memo to a byte string.  If memo_hex is supplied, attempt to decode it and use that instead."""
@@ -281,8 +286,9 @@ def adjust_get_sends_memo_filters(filters):
             filter_['field'] = 'memo'
             try:
                 filter_['value'] = bytes.fromhex(filter_['value'])
-            except ValueError as e:
+            except ValueError:
                 raise APIError("Invalid memo_hex value")
+
 
 def adjust_get_sends_results(query_result):
     """Format the memo_hex field.  Try and decode the memo from a utf-8 uncoded string. Invalid utf-8 strings return an empty memo."""
@@ -320,7 +326,7 @@ def compose_transaction(db, name, params,
         provided_pubkeys = [pubkey]
     elif type(pubkey) == list:
         provided_pubkeys = pubkey
-    elif pubkey == None:
+    elif pubkey is None:
         provided_pubkeys = []
     else:
         assert False
@@ -352,19 +358,20 @@ def compose_transaction(db, name, params,
 
     tx_info = compose_method(db, **params)
     return transaction.construct(db, tx_info, encoding=encoding,
-                                        fee_per_kb=fee_per_kb,
-                                        estimate_fee_per_kb=estimate_fee_per_kb, estimate_fee_per_kb_nblocks=estimate_fee_per_kb_nblocks,
-                                        regular_dust_size=regular_dust_size,
-                                        multisig_dust_size=multisig_dust_size,
-                                        op_return_value=op_return_value,
-                                        provided_pubkeys=provided_pubkeys,
-                                        allow_unconfirmed_inputs=allow_unconfirmed_inputs,
-                                        exact_fee=fee,
-                                        fee_provided=fee_provided,
-                                        unspent_tx_hash=unspent_tx_hash, custom_inputs=custom_inputs,
-                                        dust_return_pubkey=dust_return_pubkey,
-                                        disable_utxo_locks=disable_utxo_locks,
-                                        extended_tx_info=extended_tx_info)
+                                 fee_per_kb=fee_per_kb,
+                                 estimate_fee_per_kb=estimate_fee_per_kb, estimate_fee_per_kb_nblocks=estimate_fee_per_kb_nblocks,
+                                 regular_dust_size=regular_dust_size,
+                                 multisig_dust_size=multisig_dust_size,
+                                 op_return_value=op_return_value,
+                                 provided_pubkeys=provided_pubkeys,
+                                 allow_unconfirmed_inputs=allow_unconfirmed_inputs,
+                                 exact_fee=fee,
+                                 fee_provided=fee_provided,
+                                 unspent_tx_hash=unspent_tx_hash, custom_inputs=custom_inputs,
+                                 dust_return_pubkey=dust_return_pubkey,
+                                 disable_utxo_locks=disable_utxo_locks,
+                                 extended_tx_info=extended_tx_info)
+
 
 def conditional_decorator(decorator, condition):
     """Checks the condition and if True applies specified decorator."""
@@ -373,6 +380,7 @@ def conditional_decorator(decorator, condition):
             return f
         return decorator(f)
     return gen_decorator
+
 
 def init_api_access_log(app):
     """Initialize API logger."""
@@ -389,6 +397,7 @@ def init_api_access_log(app):
         for l in loggers:
             l.addHandler(handler)
 
+
 class APIStatusPoller(threading.Thread):
     """Perform regular checks on the state of the backend and the database."""
     def __init__(self):
@@ -404,11 +413,11 @@ class APIStatusPoller(threading.Thread):
         global current_api_status_code, current_api_status_response_json
         db = database.get_connection(read_only=True, integrity_check=False)
 
-        while self.stop_event.is_set() != True:
+        while self.stop_event.is_set() is not True:
             try:
                 # Check that backend is running, communicable, and caught up with the blockchain.
                 # Check that the database has caught up with aspiregasd.
-                if time.time() - self.last_database_check > 10 * 60: # Ten minutes since last check.
+                if time.time() - self.last_database_check > 10 * 60:  # Ten minutes since last check.
                     if not config.FORCE:
                         code = 11
                         logger.debug('Checking backend state.')
@@ -428,6 +437,7 @@ class APIStatusPoller(threading.Thread):
                 current_api_status_code = None
                 current_api_status_response_json = None
             time.sleep(config.BACKEND_POLL_INTERVAL)
+
 
 class APIServer(threading.Thread):
     """Handle JSON-RPC API calls."""
@@ -453,14 +463,14 @@ class APIServer(threading.Thread):
             return None
 
         ######################
-        #READ API
+        # READ API
 
         # Generate dynamically get_{table} methods
         def generate_get_method(table):
             def get_method(**kwargs):
                 try:
                     return get_rows(db, table=table, **kwargs)
-                except TypeError as e:          #TODO: generalise for all API methods
+                except TypeError as e:  # TODO: generalise for all API methods
                     raise APIError(str(e))
             return get_method
 
@@ -471,13 +481,12 @@ class APIServer(threading.Thread):
 
         @dispatcher.add_method
         def sql(query, bindings=None):
-            if bindings == None:
+            if bindings is None:
                 bindings = []
             return db_query(db, query, tuple(bindings))
 
-
         ######################
-        #WRITE/ACTION API
+        # WRITE/ACTION API
 
         # Generate dynamically create_{transaction} methods
         def generate_create_method(tx):
@@ -530,14 +539,14 @@ class APIServer(threading.Thread):
             @param message_index: A single index, or a list of one or more message indexes to retrieve.
             """
             if not isinstance(message_indexes, list):
-                message_indexes = [message_indexes,]
-            for idx in message_indexes:  #make sure the data is clean
+                message_indexes = [message_indexes]
+
+            for idx in message_indexes:  # make sure the data is clean
                 if not isinstance(idx, int):
                     raise APIError("All items in message_indexes are not integers")
 
             cursor = db.cursor()
-            cursor.execute('SELECT * FROM messages WHERE message_index IN (%s) ORDER BY message_index ASC'
-                % (','.join([str(x) for x in message_indexes]),))
+            cursor.execute('SELECT * FROM messages WHERE message_index IN (%s) ORDER BY message_index ASC' % (','.join([str(x) for x in message_indexes]),))
             messages = cursor.fetchall()
             cursor.close()
             return messages
@@ -590,12 +599,15 @@ class APIServer(threading.Thread):
                 issuances = list(cursor.execute('''SELECT * FROM issuances WHERE (status = ? AND asset = ?) ORDER BY block_index ASC''', ('valid', asset)))
                 cursor.close()
                 if not issuances:
-                    continue #asset not found, most likely
+                    continue  # asset not found, most likely
                 else:
                     last_issuance = issuances[-1]
+
                 locked = False
                 for e in issuances:
-                    if e['locked']: locked = True
+                    if e['locked']:
+                        locked = True
+
                 assetsInfo.append({
                     'asset': asset,
                     'asset_longname': last_issuance['asset_longname'],
@@ -642,12 +654,10 @@ class APIServer(threading.Thread):
             cursor = db.cursor()
 
             # The blocks table gets rolled back from undolog, so min_message_index doesn't matter for this query
-            cursor.execute('SELECT * FROM blocks WHERE block_index IN (%s) ORDER BY block_index ASC'
-                % (block_indexes_str,))
+            cursor.execute('SELECT * FROM blocks WHERE block_index IN (%s) ORDER BY block_index ASC' % (block_indexes_str,))
             blocks = cursor.fetchall()
 
-            cursor.execute('SELECT * FROM messages WHERE block_index IN (%s) ORDER BY message_index ASC'
-                % (block_indexes_str,))
+            cursor.execute('SELECT * FROM messages WHERE block_index IN (%s) ORDER BY message_index ASC' % (block_indexes_str,))
             messages = collections.deque(cursor.fetchall())
 
             # Discard any messages less than min_message_index
@@ -660,7 +670,7 @@ class APIServer(threading.Thread):
                 block['_messages'] = []
                 while len(messages) and messages[0]['block_index'] == block['block_index']:
                     block['_messages'].append(messages.popleft())
-            #NOTE: if len(messages), then we're only returning the messages for the first set of blocks before the reorg
+            # NOTE: if len(messages), then we're only returning the messages for the first set of blocks before the reorg
 
             cursor.close()
             return blocks
@@ -707,7 +717,7 @@ class APIServer(threading.Thread):
             cursor = db.cursor()
             for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends', 'orders',
                 'order_matches', 'btcpays', 'issuances', 'broadcasts', 'bets', 'bet_matches', 'dividends',
-                'burns', 'cancels', 'order_expirations', 'bet_expirations', 'order_match_expirations',
+                'proofofwork', 'cancels', 'order_expirations', 'bet_expirations', 'order_match_expirations',
                 'bet_match_expirations', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()

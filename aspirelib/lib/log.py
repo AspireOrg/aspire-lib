@@ -287,8 +287,8 @@ def log (db, command, category, bindings):
         elif category == 'dividends':
             logger.info('Dividend: {} paid {} per unit of {} ({}) [{}]'.format(bindings['source'], output(bindings['quantity_per_unit'], bindings['dividend_asset']), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
-        elif category == 'burns':
-            logger.info('Burn: {} burned {} for {} ({}) [{}]'.format(bindings['source'], output(bindings['burned'], config.BTC), output(bindings['earned'], config.XCP), bindings['tx_hash'], bindings['status']))
+        elif category == 'pow':
+            logger.info('POW: {} mined {} ({}) [{}]'.format(bindings['source'], output(bindings['earned'], config.XCP), bindings['tx_hash'], bindings['status']))
 
         elif category == 'cancels':
             logger.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))
