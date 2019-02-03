@@ -236,7 +236,7 @@ def initialise(db):
     cursor.execute('''SELECT * from blocks ORDER BY block_index''')
     blocks = list(cursor)
     if len(blocks):
-        if blocks[0]['block_index'] != config.BLOCK_FIRST:
+        if blocks[0]['block_index'] != config.BLOCK_FIRST_TESTNET if config.TESTNET else config.BLOCK_FIRST_MAINNET:
             raise exceptions.DatabaseError('First block in database is not block {}.'.format(config.BLOCK_FIRST))
 
     # Transactions
@@ -272,8 +272,8 @@ def initialise(db):
                    ''')
 
     # Purge database of blocks, transactions from before BLOCK_FIRST.
-    cursor.execute('''DELETE FROM blocks WHERE block_index < ?''', (config.BLOCK_FIRST,))
-    cursor.execute('''DELETE FROM transactions WHERE block_index < ?''', (config.BLOCK_FIRST,))
+    cursor.execute('''DELETE FROM blocks WHERE block_index < ?''', (config.BLOCK_FIRST_TESTNET if config.TESTNET else config.BLOCK_FIRST_MAINNET,))
+    cursor.execute('''DELETE FROM transactions WHERE block_index < ?''', (config.BLOCK_FIRST_TESTNET if config.TESTNET else config.BLOCK_FIRST_MAINNET,))
 
     # (Valid) debits
     cursor.execute('''CREATE TABLE IF NOT EXISTS debits(
@@ -769,10 +769,10 @@ def reinitialise(db, block_index=None):
     for field in ['ledger_hash', 'txlist_hash']:
         if field in columns:
             sql = '''SELECT {} FROM blocks  WHERE block_index = ?'''.format(field)
-            first_block = list(cursor.execute(sql, (config.BLOCK_FIRST,)))
+            first_block = list(cursor.execute(sql, (config.BLOCK_FIRST_TESTNET if config.TESTNET else config.BLOCK_FIRST_MAINNET,)))
             if first_block:
                 first_hash = first_block[0][field]
-                if first_hash != checkpoints[config.BLOCK_FIRST][field]:
+                if first_hash != checkpoints[config.BLOCK_FIRST_TESTNET if config.TESTNET else config.BLOCK_FIRST_MAINNET][field]:
                     logger.info('First hash changed. Cleaning {}.'.format(field))
                     cursor.execute('''UPDATE blocks SET {} = NULL'''.format(field))
 
