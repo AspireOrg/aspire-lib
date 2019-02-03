@@ -44,12 +44,17 @@ def validate(address, allow_p2sh=True):
     # Check validity by attempting to decode.
     for pubkeyhash in pubkeyhashes:
         try:
-            base58_check_decode(pubkeyhash, config.ADDRESSVERSION)
+            if config.TESTNET:
+                base58_check_decode(pubkeyhash, config.ADDRESSVERSION_TESTNET)
+            else:
+                base58_check_decode(pubkeyhash, config.ADDRESSVERSION_MAINNET)
         except VersionByteError as e:
             if not allow_p2sh:
                 raise e
-            base58_check_decode(pubkeyhash, config.P2SH_ADDRESSVERSION)
-
+            if config.TESTNET:
+                base58_check_decode(pubkeyhash, config.P2SH_ADDRESSVERSION_TESTNET)
+            else:
+                base58_check_decode(pubkeyhash, config.P2SH_ADDRESSVERSION_MAINNET)
 
 
 def base58_encode(binary):

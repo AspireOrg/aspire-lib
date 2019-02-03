@@ -651,7 +651,6 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
 
         return destination, data
 
-    # Ignore coinbase transactions.
     if ctx.is_coinbase():
         # ASP Mining, pay out same as GASP pays
         if db and len(ctx.vout) == 2 and ctx.vout[1].nValue > 0:
@@ -659,10 +658,12 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
             if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
                 del asm[0]
                 destination, new_data = decode_scripthash(asm)
-                # print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
+                print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
                 print('block_index', block_index)
                 proofofwork.parse(db, destination, ctx.vout[1].nValue, block_index, ctx.GetHash())
                 # util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
+
+        # Ignore coinbase transactions.
         raise DecodeError('coinbase transaction')
 
     # Get destinations and data outputs.
@@ -965,16 +966,16 @@ def list_tx(db, block_hash, block_index, block_time, tx_hash, tx_index, tx_hex=N
     return tx_index
 
 
-def kickstart(db, bitcoind_dir):
-    if bitcoind_dir is None:
+def kickstart(db, aspiregasd_dir):
+    if aspiregasd_dir is None:
         if platform.system() == 'Darwin':
-            bitcoind_dir = os.path.expanduser('~/Library/Application Support/AspireGas/')
+            aspiregasd_dir = os.path.expanduser('~/Library/Application Support/AspireGas/')
         elif platform.system() == 'Windows':
-            bitcoind_dir = os.path.join(os.environ['APPDATA'], 'AspireGas')
+            aspiregasd_dir = os.path.join(os.environ['APPDATA'], 'AspireGas')
         else:
-            bitcoind_dir = os.path.expanduser('~/.aspiregas')
-    if not os.path.isdir(bitcoind_dir):
-        raise Exception('AspireGas Core data directory not found at {}. Use --aspiregasd-dir parameter.'.format(bitcoind_dir))
+            aspiregasd_dir = os.path.expanduser('~/.aspiregas')
+    if not os.path.isdir(aspiregasd_dir):
+        raise Exception('AspireGas Core data directory not found at {}. Use --aspiregasd-dir parameter.'.format(aspiregasd_dir))
 
     cursor = db.cursor()
 
@@ -989,12 +990,12 @@ def kickstart(db, bitcoind_dir):
     start_time_total = time.time()
 
     # Get hash of last known block.
-    chain_parser = ChainstateParser(os.path.join(bitcoind_dir, 'chainstate'))
+    chain_parser = ChainstateParser(os.path.join(aspiregasd_dir, 'chainstate'))
     last_hash = chain_parser.get_last_block_hash()
     chain_parser.close()
 
     # Start block parser.
-    block_parser = BlockchainParser(os.path.join(bitcoind_dir, 'blocks'), os.path.join(bitcoind_dir, 'blocks/index'))
+    block_parser = BlockchainParser(os.path.join(aspiregasd_dir, 'blocks'), os.path.join(aspiregasd_dir, 'blocks/index'))
 
     current_hash = last_hash
     tx_index = 0
