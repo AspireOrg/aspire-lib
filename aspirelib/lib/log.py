@@ -1,19 +1,21 @@
-import logging
-logger = logging.getLogger(__name__)
-import decimal
-D = decimal.Decimal
-import binascii
-import collections
-import json
-import time
 from datetime import datetime
 from dateutil.tz import tzlocal
-import os
 from colorlog import ColoredFormatter
+import bitcoin as bitcoinlib
+import binascii
+import collections
+import decimal
+import json
+import time
+import os
+import logging
 
 from aspirelib.lib import config
 from aspirelib.lib import exceptions
 from aspirelib.lib import util
+
+D = decimal.Decimal
+logger = logging.getLogger(__name__)
 
 
 class ModuleLoggingFilter(logging.Filter):
@@ -87,7 +89,7 @@ def set_up(logger, verbose=False, logfile=None, console_logfilter=None):
 
     def set_up_file_logging():
         assert logfile
-        max_log_size = 20 * 1024 * 1024 # 20 MB
+        max_log_size = 20 * 1024 * 1024  # 20 MB
         if os.name == 'nt':
             from aspirelib.lib import util_windows
             fileh = util_windows.SanitizedRotatingFileHandler(logfile, maxBytes=max_log_size, backupCount=5)
@@ -101,8 +103,8 @@ def set_up(logger, verbose=False, logfile=None, console_logfilter=None):
 
     if LOGGING_SETUP:
         if logfile and not LOGGING_TOFILE_SETUP:
-             set_up_file_logging()
-             LOGGING_TOFILE_SETUP = True
+            set_up_file_logging()
+            LOGGING_TOFILE_SETUP = True
         logger.getChild('log.set_up').debug('logging already setup')
         return
     LOGGING_SETUP = True
@@ -141,14 +143,17 @@ def set_up(logger, verbose=False, logfile=None, console_logfilter=None):
     import requests
     requests.packages.urllib3.disable_warnings()
 
+
 def curr_time():
     return int(time.time())
 
-def isodt (epoch_time):
+
+def isodt(epoch_time):
     try:
         return datetime.fromtimestamp(epoch_time, tzlocal()).isoformat()
     except OSError:
         return '<datetime>'
+
 
 def message(db, block_index, command, category, bindings, tx_hash=None):
     cursor = db.cursor()
@@ -190,7 +195,7 @@ def message(db, block_index, command, category, bindings, tx_hash=None):
     cursor.close()
 
 
-def log (db, command, category, bindings):
+def log(db, command, category, bindings):
 
     cursor = db.cursor()
 
@@ -201,7 +206,7 @@ def log (db, command, category, bindings):
             bindings[element] = '<Error>'
 
     # Slow?!
-    def output (quantity, asset):
+    def output(quantity, asset):
         try:
             if asset not in ('fraction', 'leverage'):
                 return str(util.value_out(db, quantity, asset)) + ' ' + asset
@@ -223,6 +228,9 @@ def log (db, command, category, bindings):
             logger.debug('Database: set status of order_match {} to {}.'.format(bindings['order_match_id'], bindings['status']))
         elif category == 'bet_matches':
             logger.debug('Database: set status of bet_match {} to {}.'.format(bindings['bet_match_id'], bindings['status']))
+        # elif category == 'proofofwork':
+        #     logger.info('POW: block {} {}'.format(bindings['block_index'], bindings['status']))
+
         # TODO: elif category == 'balances':
             # logger.debug('Database: set balance of {} in {} to {}.'.format(bindings['address'], bindings['asset'], output(bindings['quantity'], bindings['asset']).split(' ')[0]))
 
@@ -254,13 +262,11 @@ def log (db, command, category, bindings):
             else:
                 if bindings['divisible']:
                     divisibility = 'divisible'
-                    unit = config.UNIT
                 else:
                     divisibility = 'indivisible'
-                    unit = 1
                 try:
                     quantity = util.value_out(db, bindings['quantity'], None, divisible=bindings['divisible'])
-                except Exception as e:
+                except:
                     quantity = '?'
                 if 'asset_longname' in bindings and bindings['asset_longname'] is not None:
                     logger.info('Subasset Issuance: {} created {} of {} subasset {} as numeric asset {} ({}) [{}]'.format(bindings['issuer'], quantity, divisibility, bindings['asset_longname'], bindings['asset'], bindings['tx_hash'], bindings['status']))
@@ -287,8 +293,8 @@ def log (db, command, category, bindings):
         elif category == 'dividends':
             logger.info('Dividend: {} paid {} per unit of {} ({}) [{}]'.format(bindings['source'], output(bindings['quantity_per_unit'], bindings['dividend_asset']), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
-        elif category == 'pow':
-            logger.info('POW: {} mined {} ({}) [{}]'.format(bindings['source'], output(bindings['earned'], config.XCP), bindings['tx_hash'], bindings['status']))
+        elif category == 'proofofwork':
+            logger.info('POW: [{}] {} mined {} (txid {})'.format(bindings['status'], bindings['address'], output(bindings['mined'], config.XCP), bitcoinlib.core.b2lx(bindings['tx_hash'])))
 
         elif category == 'cancels':
             logger.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))

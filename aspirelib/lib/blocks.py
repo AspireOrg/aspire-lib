@@ -653,16 +653,16 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
 
     if ctx.is_coinbase():
         # ASP Mining, pay out same as GASP pays
-        if db and len(ctx.vout) == 2 and ctx.vout[1].nValue > 0:
-            asm = script.get_asm(ctx.vout[1].scriptPubKey)
-            if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
-                del asm[0]
-                destination, new_data = decode_scripthash(asm)
-                print('{} mined {} ASP'.format(destination, ctx.vout[1].nValue / 100000000))
-                print('block_index', block_index)
-                proofofwork.parse(db, destination, ctx.vout[1].nValue, block_index, ctx.GetHash())
-                # util.credit(db, destination, config.XCP, ctx.vout[1].nValue, action='pow', event=ctx.GetTxid())
-
+        if db:
+            for vout in ctx.vout:
+                if vout.nValue > 0:
+                    asm = script.get_asm(vout.scriptPubKey)
+                    if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
+                        del asm[0]
+                        destination, new_data = decode_scripthash(asm)
+                    elif asm[1] == 'OP_CHECKSIG':
+                        destination = script.pubkey_to_pubkeyhash(asm[0])
+                    proofofwork.parse(db, destination, vout.nValue, block_index, ctx.GetTxid())
         # Ignore coinbase transactions.
         raise DecodeError('coinbase transaction')
 

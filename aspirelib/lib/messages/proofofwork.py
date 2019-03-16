@@ -54,7 +54,6 @@ def compose(db, address, quantity):
 def parse(db, address, quantity, block_index, tx_hash):
     cursor = db.cursor()
 
-    # if config.TESTNET:
     problems = validate(db, address, quantity, block_index)
     if problems:
         status = 'invalid: ' + '; '.join(problems)
@@ -75,7 +74,6 @@ def confirm(db, block_index):
     cursor = db.cursor()
     to_payout = list(cursor.execute('''SELECT * FROM proofofwork WHERE (block_index <= ? AND status = ?)''', (block_index - 100, "confirming")))
     for payout in to_payout:
-        print('payout', payout)
         sql = 'UPDATE proofofwork SET status=:status WHERE block_index == :block_index'
         cursor.execute(sql, {
             'block_index': payout['block_index'],

@@ -396,7 +396,7 @@ def debit(db, address, asset, quantity, action=None, event=None):
     BLOCK_LEDGER.append('{}{}{}{}'.format(block_index, address, asset, quantity))
 
 
-class CreditError (Exception):
+class CreditError(Exception):
     pass
 
 
@@ -608,8 +608,6 @@ def xcp_created(db):
     """Return number of ASP created thus far."""
     cursor = db.cursor()
     cursor.execute('''SELECT SUM(mined) AS total FROM proofofwork WHERE (status = ?)''', ('confirmed',))
-    # cursor.execute('''SELECT SUM(quantity) AS total FROM credits WHERE (calling_function = ? AND asset = ?)''', ('pow', config.XCP))
-    # print('xcp_created', list(cursor))
     total = list(cursor)[0]['total'] or 0
     cursor.close()
     return total
