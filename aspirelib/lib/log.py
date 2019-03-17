@@ -228,8 +228,8 @@ def log(db, command, category, bindings):
             logger.debug('Database: set status of order_match {} to {}.'.format(bindings['order_match_id'], bindings['status']))
         elif category == 'bet_matches':
             logger.debug('Database: set status of bet_match {} to {}.'.format(bindings['bet_match_id'], bindings['status']))
-        # elif category == 'proofofwork':
-        #     logger.info('POW: block {} {}'.format(bindings['block_index'], bindings['status']))
+        elif category == 'proofofwork':
+            logger.info('POW: block {} {}'.format(bindings['block_index'], bindings['status']))
 
         # TODO: elif category == 'balances':
             # logger.debug('Database: set balance of {} in {} to {}.'.format(bindings['address'], bindings['asset'], output(bindings['quantity'], bindings['asset']).split(' ')[0]))
