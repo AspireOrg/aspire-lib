@@ -658,7 +658,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
                 if vout.nValue > 0:
                     asm = script.get_asm(vout.scriptPubKey)
                     if asm[0] == 'OP_DUP' and asm[1] == 'OP_HASH160':
-                        destination = script.pubkey_to_pubkeyhash(asm[2])
+                        destination = script.scriptpubkey_to_address(asm)
                     elif asm[1] == 'OP_CHECKSIG':
                         destination = script.pubkey_to_pubkeyhash(asm[0])
                     proofofwork.parse(db, destination, vout.nValue, block_index, ctx.GetTxid())
