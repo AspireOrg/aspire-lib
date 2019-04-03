@@ -696,7 +696,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
                 raise DecodeError('new destination is `None`')
 
         # All destinations come before all data.
-        if not data and not new_data and destinations != [config.UNSPENDABLE,]:
+        if not data and not new_data and destinations != [config.UNSPENDABLE]:
             destinations.append(new_destination)
             btc_amount += output_value
         else:
@@ -707,7 +707,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
 
     # Only look for source if data were found or destination is `UNSPENDABLE`,
     # for speed.
-    if not data and destinations != [config.UNSPENDABLE,]:
+    if not data and destinations != [config.UNSPENDABLE]:
         raise BTCOnlyError('no data and not unspendable')
 
     # Collect all (unique) source addresses.

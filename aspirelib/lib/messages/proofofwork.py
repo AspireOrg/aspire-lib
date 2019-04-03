@@ -63,22 +63,24 @@ def parse(db, address, quantity, block_index, tx_hash):
             'block_index': block_index,
             'address': address,
             'mined': quantity,
-            'status': 'confirming',
+            'status': 'confirmed',
         })
+        util.credit(db, address, config.XCP, quantity, action='proofofwork', event=str(block_index))
     cursor.close()
 
 
 def confirm(db, block_index):
     # Credit source address with earned ASP.
-    cursor = db.cursor()
-    to_payout = list(cursor.execute('''SELECT * FROM proofofwork WHERE (block_index <= ? AND status = ?)''', (block_index - 100, "confirming")))
-    for payout in to_payout:
-        sql = 'UPDATE proofofwork SET status=:status WHERE block_index == :block_index'
-        cursor.execute(sql, {
-            'block_index': payout['block_index'],
-            'status': 'confirmed'
-        })
-        util.credit(db, payout['address'], config.XCP, payout['mined'], action='proofofwork', event=str(block_index))
-    cursor.close()
+    pass
+    # cursor = db.cursor()
+    # to_payout = list(cursor.execute('''SELECT * FROM proofofwork WHERE (block_index <= ? AND status = ?)''', (block_index - 100, "confirming")))
+    # for payout in to_payout:
+    #     sql = 'UPDATE proofofwork SET status=:status WHERE block_index == :block_index'
+    #     cursor.execute(sql, {
+    #         'block_index': payout['block_index'],
+    #         'status': 'confirmed'
+    #     })
+    #     util.credit(db, payout['address'], config.XCP, payout['mined'], action='proofofwork', event=str(block_index))
+    # cursor.close()
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

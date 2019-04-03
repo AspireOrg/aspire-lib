@@ -3,14 +3,19 @@
 import struct
 import json
 import logging
+
+from aspirelib.lib import address
+from aspirelib.lib import config
+from aspirelib.lib import exceptions
+from aspirelib.lib import message_type
+from aspirelib.lib import util
+
 logger = logging.getLogger(__name__)
-
-from aspirelib.lib import (config, util, exceptions, util, message_type, address)
-
 FORMAT = '>QQ21s'
 LENGTH = 8 + 8 + 21
 MAX_MEMO_LENGTH = 34
-ID = 2 # 0x02
+ID = 2  # 0x02
+
 
 def unpack(db, message, block_index):
     try:
@@ -50,10 +55,12 @@ def unpack(db, message, block_index):
     }
     return unpacked
 
-def validate (db, source, destination, asset, quantity, memo_bytes, block_index):
+
+def validate(db, source, destination, asset, quantity, memo_bytes, block_index):
     problems = []
 
-    if asset == config.BTC: problems.append('cannot send {}'.format(config.BTC))
+    if asset == config.BTC:
+        problems.append('cannot send {}'.format(config.BTC))
 
     if not isinstance(quantity, int):
         problems.append('quantity must be in satoshis')
@@ -75,7 +82,7 @@ def validate (db, source, destination, asset, quantity, memo_bytes, block_index)
 
     # check memo
     if memo_bytes is not None and len(memo_bytes) > MAX_MEMO_LENGTH:
-      problems.append('memo is too long')
+        problems.append('memo is too long')
 
     if util.enabled('options_require_memo'):
         cursor = db.cursor()
@@ -91,7 +98,8 @@ def validate (db, source, destination, asset, quantity, memo_bytes, block_index)
 
     return problems
 
-def compose (db, source, destination, asset, quantity, memo, memo_is_hex):
+
+def compose(db, source, destination, asset, quantity, memo, memo_is_hex):
     cursor = db.cursor()
 
     # Just send GASP?
@@ -101,7 +109,7 @@ def compose (db, source, destination, asset, quantity, memo, memo_is_hex):
     # resolve subassets
     asset = util.resolve_subasset_longname(db, asset)
 
-    #quantity must be in int satoshi (not float, string, etc)
+    # quantity must be in int satoshi (not float, string, etc)
     if not isinstance(quantity, int):
         raise exceptions.ComposeError('quantity must be an int (in satoshi)')
 
@@ -122,7 +130,8 @@ def compose (db, source, destination, asset, quantity, memo, memo_is_hex):
     block_index = util.CURRENT_BLOCK_INDEX
 
     problems = validate(db, source, destination, asset, quantity, memo_bytes, block_index)
-    if problems: raise exceptions.ComposeError(problems)
+    if problems:
+        raise exceptions.ComposeError(problems)
 
     asset_id = util.get_asset_id(db, asset, block_index)
 
@@ -136,7 +145,8 @@ def compose (db, source, destination, asset, quantity, memo, memo_is_hex):
     # return an empty array as the second argument because we don't need to send GASP dust to the recipient
     return (source, [], data)
 
-def parse (db, tx, message):
+
+def parse(db, tx, message):
     cursor = db.cursor()
 
     # Unpack message.
@@ -161,12 +171,12 @@ def parse (db, tx, message):
 
     if status == 'valid':
         problems = validate(db, tx['source'], destination, asset, quantity, memo_bytes, tx['block_index'])
-        if problems: status = 'invalid: ' + '; '.join(problems)
+        if problems:
+            status = 'invalid: ' + '; '.join(problems)
 
     if status == 'valid':
         # verify balance is present
-        cursor.execute('''SELECT * FROM balances \
-                                     WHERE (address = ? AND asset = ?)''', (tx['source'], asset))
+        cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (tx['source'], asset))
         balances = cursor.fetchall()
         if not balances or balances[0]['quantity'] < quantity:
             status = 'invalid: insufficient funds'
@@ -174,14 +184,11 @@ def parse (db, tx, message):
     if status == 'valid':
         util.debit(db, tx['source'], asset, quantity, action='send', event=tx['tx_hash'])
         util.credit(db, destination, asset, quantity, action='send', event=tx['tx_hash'])
-
-    # log invalid transactions
-    if status != 'valid':
+    else:
         if quantity is None:
             logger.warn("Invalid send from %s with status %s. (%s)" % (tx['source'], status, tx['tx_hash']))
         else:
             logger.warn("Invalid send of %s %s from %s to %s. status is %s. (%s)" % (quantity, asset, tx['source'], destination, status, tx['tx_hash']))
-
 
     # Add parsed transaction to message-type–specific table.
     bindings = {
@@ -201,7 +208,6 @@ def parse (db, tx, message):
     else:
         logger.warn("Not storing [send] tx [%s]: %s" % (tx['tx_hash'], status))
         logger.debug("Bindings: %s" % (json.dumps(bindings), ))
-
 
     cursor.close()
 

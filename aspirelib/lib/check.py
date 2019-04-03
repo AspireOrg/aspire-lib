@@ -116,6 +116,8 @@ def check_change(protocol_change, change_name):
 
 
 def software_version():
+    return
+
     logger.warning('Update software_version() for aspire')  # Current using counterparty..
     return
 
@@ -149,6 +151,8 @@ class DatabaseVersionError(Exception):
 
 
 def database_version(db):
+    return
+
     if config.FORCE:
         return
     logger.debug('Checking database version.')
