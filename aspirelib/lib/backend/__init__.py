@@ -213,7 +213,7 @@ def get_unspent_txouts(source, unconfirmed=False, multisig_inputs=False, unspent
         # print('output', output)
         if (output['txid'], output['vout']) not in vins:
             unspent.append(output)
-    unspent = sorted(unspent, key=lambda x: x['txid'])
+    unspent = sorted(unspent, key=lambda x: x['confirmations'], reverse=True)
 
     # Remove unconfirmed txouts, if desired.
     if not unconfirmed:
