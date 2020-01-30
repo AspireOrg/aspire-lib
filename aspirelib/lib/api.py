@@ -35,14 +35,12 @@ from aspirelib.lib import blocks
 from aspirelib.lib import script
 from aspirelib.lib import message_type
 from aspirelib.lib.messages import send
-from aspirelib.lib.messages import order
 from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
 from aspirelib.lib.messages import proofofwork
-from aspirelib.lib.messages import cancel
 from aspirelib.lib.messages import rps
 from aspirelib.lib.messages import rpsresolve
 from aspirelib.lib.messages import publish
@@ -52,15 +50,15 @@ D = decimal.Decimal
 logger = logging.getLogger(__name__)
 
 API_TABLES = ['assets', 'balances', 'credits', 'debits', 'bets', 'bet_matches',
-              'broadcasts', 'btcpays', 'proofofwork', 'cancels',
-              'dividends', 'issuances', 'orders', 'order_matches', 'sends',
-              'bet_expirations', 'order_expirations', 'bet_match_expirations',
-              'order_match_expirations', 'bet_match_resolutions', 'rps',
+              'broadcasts', 'btcpays', 'proofofwork',
+              'dividends', 'issuances', 'sends',
+              'bet_expirations', 'bet_match_expirations',
+              'bet_match_resolutions', 'rps',
               'rpsresolves', 'rps_matches', 'rps_expirations', 'rps_match_expirations',
               'mempool']
 
-API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'proofofwork', 'cancel',
-                    'dividend', 'issuance', 'order', 'send',
+API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'proofofwork',
+                    'dividend', 'issuance', 'send',
                     'rps', 'rpsresolve', 'publish', 'execute']
 
 COMMONS_ARGS = ['encoding', 'fee_per_kb', 'regular_dust_size',
@@ -217,14 +215,14 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
             bindings.append(filter_['value'])
     # AND filters
     more_conditions = []
-    if table not in ['balances', 'order_matches', 'bet_matches']:
+    if table not in ['balances', 'bet_matches']:
         if start_block is not None:
             more_conditions.append('''block_index >= ?''')
             bindings.append(start_block)
         if end_block is not None:
             more_conditions.append('''block_index <= ?''')
             bindings.append(end_block)
-    elif table in ['order_matches', 'bet_matches']:
+    elif table in ['bet_matches']:
         if start_block is not None:
             more_conditions.append('''tx0_block_index >= ?''')
             bindings.append(start_block)
@@ -240,12 +238,6 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
         more_conditions.append('''status == ?''')
         bindings.append(status)
 
-    # legacy filters
-    if not show_expired and table == 'orders':
-        # Ignore GASP orders one block early.
-        expire_index = util.CURRENT_BLOCK_INDEX + 1
-        more_conditions.append('''((give_asset == ? AND expire_index > ?) OR give_asset != ?)''')
-        bindings += [config.BTC, expire_index, config.BTC]
 
     if (len(conditions) + len(more_conditions)) > 0:
         statement += ''' WHERE'''
@@ -715,9 +707,9 @@ class APIServer(threading.Thread):
         def get_element_counts():
             counts = {}
             cursor = db.cursor()
-            for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends', 'orders',
-                'order_matches', 'btcpays', 'issuances', 'broadcasts', 'bets', 'bet_matches', 'dividends',
-                'proofofwork', 'cancels', 'order_expirations', 'bet_expirations', 'order_match_expirations',
+            for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends',
+                'btcpays', 'issuances', 'broadcasts', 'bets', 'bet_matches', 'dividends',
+                'proofofwork', 'bet_expirations',
                 'bet_match_expirations', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()

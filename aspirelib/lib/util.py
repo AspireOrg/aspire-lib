@@ -554,43 +554,9 @@ def holders(db, asset):
                       WHERE asset = ?''', (asset,))
     for balance in list(cursor):
         holders.append({'address': balance['address'], 'address_quantity': balance['quantity'], 'escrow': None})
-    # Funds escrowed in orders. (Protocol change.)
-    cursor.execute('''SELECT * FROM orders \
-                      WHERE give_asset = ? AND status = ?''', (asset, 'open'))
-    for order in list(cursor):
-        holders.append({'address': order['source'], 'address_quantity': order['give_remaining'], 'escrow': order['tx_hash']})
-    # Funds escrowed in pending order matches. (Protocol change.)
-    cursor.execute('''SELECT * FROM order_matches \
-                      WHERE (forward_asset = ? AND status = ?)''', (asset, 'pending'))
-    for order_match in list(cursor):
-        holders.append({'address': order_match['tx0_address'], 'address_quantity': order_match['forward_quantity'], 'escrow': order_match['id']})
-    cursor.execute('''SELECT * FROM order_matches \
-                      WHERE (backward_asset = ? AND status = ?)''', (asset, 'pending'))
-    for order_match in list(cursor):
-        holders.append({'address': order_match['tx1_address'], 'address_quantity': order_match['backward_quantity'], 'escrow': order_match['id']})
 
-    # Bets and RPS (and bet/rps matches) only escrow ASP.
+    # escrow ASP
     if asset == config.XCP:
-        cursor.execute('''SELECT * FROM bets \
-                          WHERE status = ?''', ('open',))
-        for bet in list(cursor):
-            holders.append({'address': bet['source'], 'address_quantity': bet['wager_remaining'], 'escrow': bet['tx_hash']})
-        cursor.execute('''SELECT * FROM bet_matches \
-                          WHERE status = ?''', ('pending',))
-        for bet_match in list(cursor):
-            holders.append({'address': bet_match['tx0_address'], 'address_quantity': bet_match['forward_quantity'], 'escrow': bet_match['id']})
-            holders.append({'address': bet_match['tx1_address'], 'address_quantity': bet_match['backward_quantity'], 'escrow': bet_match['id']})
-
-        cursor.execute('''SELECT * FROM rps \
-                          WHERE status = ?''', ('open',))
-        for rps in list(cursor):
-            holders.append({'address': rps['source'], 'address_quantity': rps['wager'], 'escrow': rps['tx_hash']})
-        cursor.execute('''SELECT * FROM rps_matches \
-                          WHERE status IN (?, ?, ?)''', ('pending', 'pending and resolved', 'resolved and pending'))
-        for rps_match in list(cursor):
-            holders.append({'address': rps_match['tx0_address'], 'address_quantity': rps_match['wager'], 'escrow': rps_match['id']})
-            holders.append({'address': rps_match['tx1_address'], 'address_quantity': rps_match['wager'], 'escrow': rps_match['id']})
-
         cursor.execute('''SELECT * FROM executions WHERE status IN (?,?)''', ('valid', 'out of gas'))
         for execution in list(cursor):
             holders.append({'address': execution['source'], 'address_quantity': execution['gas_cost'], 'escrow': None})
@@ -689,12 +655,6 @@ def supplies(db):
 def held(db):  # TODO: Rename ?
     sql = '''SELECT asset, SUM(total) AS total FROM (
                 SELECT asset, SUM(quantity) AS total FROM balances GROUP BY asset
-                UNION ALL
-                SELECT give_asset AS asset, SUM(give_remaining) AS total FROM orders WHERE status = 'open' GROUP BY asset
-                UNION ALL
-                SELECT forward_asset AS asset, SUM(forward_quantity) AS total FROM order_matches WHERE status = 'pending' GROUP BY asset
-                UNION ALL
-                SELECT backward_asset AS asset, SUM(backward_quantity) AS total FROM order_matches WHERE status = 'pending' GROUP BY asset
                 UNION ALL
                 SELECT 'ASP' AS asset, SUM(wager_remaining) AS total FROM bets WHERE status = 'open'
                 UNION ALL
