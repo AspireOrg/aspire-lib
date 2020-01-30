@@ -35,7 +35,6 @@ from aspirelib.lib import blocks
 from aspirelib.lib import script
 from aspirelib.lib import message_type
 from aspirelib.lib.messages import send
-from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import dividend
@@ -47,11 +46,11 @@ D = decimal.Decimal
 logger = logging.getLogger(__name__)
 
 API_TABLES = ['assets', 'balances', 'credits', 'debits',
-              'broadcasts', 'btcpays', 'proofofwork',
+              'broadcasts', 'proofofwork',
               'dividends', 'issuances', 'sends',
               'mempool']
 
-API_TRANSACTIONS = ['broadcast', 'btcpay', 'proofofwork',
+API_TRANSACTIONS = ['broadcast', 'proofofwork',
                     'dividend', 'issuance', 'send',
                     'publish', 'execute']
 
@@ -695,8 +694,7 @@ class APIServer(threading.Thread):
             counts = {}
             cursor = db.cursor()
             for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends',
-                'btcpays', 'issuances', 'broadcasts', 'dividends',
-                'proofofwork', 'messages']:
+                'issuances', 'broadcasts', 'dividends', 'proofofwork', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()
                 assert len(count_list) == 1

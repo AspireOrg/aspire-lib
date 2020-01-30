@@ -30,7 +30,6 @@ from aspirelib.lib import log
 from aspirelib.lib import database
 from aspirelib.lib import message_type
 from aspirelib.lib.messages import send
-from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import dividend
@@ -52,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \
-         ['broadcasts', 'btcpays', 'proofofwork',
+         ['broadcasts', 'proofofwork',
           'dividends', 'issuances', 'sends',
           'executions', 'storage', 'suicides', 'nonces',
           'postqueue', 'contracts', 'destructions', 'assets', 'addresses']
@@ -93,8 +92,6 @@ def parse_tx(db, tx):
         send.parse(db, tx, message)
     elif message_type_id == enhanced_send.ID and util.enabled('enhanced_sends', block_index=tx['block_index']):
         enhanced_send.parse(db, tx, message)
-    elif message_type_id == btcpay.ID:
-        btcpay.parse(db, tx, message)
     elif message_type_id == issuance.ID:
         issuance.parse(db, tx, message, message_type_id)
     elif message_type_id == issuance.SUBASSET_ID and util.enabled('subassets', block_index=tx['block_index']):
@@ -345,7 +342,6 @@ def initialise(db):
     # Consolidated
     send.initialise(db)
     destroy.initialise(db)
-    btcpay.initialise(db)
     issuance.initialise(db)
     broadcast.initialise(db)
     publish.initialise(db)
