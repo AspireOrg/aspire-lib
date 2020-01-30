@@ -37,10 +37,6 @@ SUBASSET_REVERSE = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5, 'f': 6, 'g': 7, 'h':
                     'N': 40, 'O': 41, 'P': 42, 'Q': 43, 'R': 44, 'S': 45, 'T': 46, 'U': 47, 'V': 48, 'W': 49, 'X': 50, 'Y': 51, 'Z': 52,
                     '0': 53, '1': 54, '2': 55, '3': 56, '4': 57, '5': 58, '6': 59, '7': 60, '8': 61, '9': 62, '.': 63, '-': 64, '_': 65, '@': 66, '!': 67}
 
-# Obsolete in Python 3.4, with enum module.
-BET_TYPE_NAME = {0: 'BullCFD', 1: 'BearCFD', 2: 'Equal', 3: 'NotEqual'}
-BET_TYPE_ID = {'BullCFD': 0, 'BearCFD': 1, 'Equal': 2, 'NotEqual': 3}
-
 json_print = lambda x: print(json.dumps(x, sort_keys=True, indent=4))
 
 BLOCK_LEDGER = []
@@ -655,16 +651,6 @@ def supplies(db):
 def held(db):  # TODO: Rename ?
     sql = '''SELECT asset, SUM(total) AS total FROM (
                 SELECT asset, SUM(quantity) AS total FROM balances GROUP BY asset
-                UNION ALL
-                SELECT 'ASP' AS asset, SUM(wager_remaining) AS total FROM bets WHERE status = 'open'
-                UNION ALL
-                SELECT 'ASP' AS asset, SUM(forward_quantity) AS total FROM bet_matches WHERE status = 'pending'
-                UNION ALL
-                SELECT 'ASP' AS asset, SUM(backward_quantity) AS total FROM bet_matches WHERE status = 'pending'
-                UNION ALL
-                SELECT 'ASP' AS asset, SUM(wager) AS total FROM rps WHERE status = 'open'
-                UNION ALL
-                SELECT 'ASP' AS asset, SUM(wager * 2) AS total FROM rps_matches WHERE status IN ('pending', 'pending and resolved', 'resolved and pending')
                 UNION ALL
                 SELECT 'ASP' AS asset, SUM(gas_cost) AS total FROM executions WHERE status IN ('valid', 'out of gas')
                 UNION ALL

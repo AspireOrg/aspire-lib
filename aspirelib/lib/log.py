@@ -220,11 +220,7 @@ def log(db, command, category, bindings):
             return '<None>'
 
     if command == 'update':
-        if category == 'bet':
-            logger.debug('Database: set status of bet {} to {}.'.format(bindings['tx_hash'], bindings['status']))
-        elif category == 'bet_matches':
-            logger.debug('Database: set status of bet_match {} to {}.'.format(bindings['bet_match_id'], bindings['status']))
-        elif category == 'proofofwork':
+        if category == 'proofofwork':
             logger.info('POW: block {} {}'.format(bindings['block_index'], bindings['status']))
 
         # TODO: elif category == 'balances':
@@ -269,17 +265,6 @@ def log(db, command, category, bindings):
             else:
                 logger.info('Broadcast: ' + bindings['source'] + ' at ' + isodt(bindings['timestamp']) + ' with a fee of {}%'.format(output(D(bindings['fee_fraction_int'] / 1e8) * D(100), 'fraction')) + ' (' + bindings['tx_hash'] + ')' + ' [{}]'.format(bindings['status']))
 
-        elif category == 'bets':
-            logger.info('Bet: {} against {}, by {}, on {}'.format(output(bindings['wager_quantity'], config.XCP), output(bindings['counterwager_quantity'], config.XCP), bindings['source'], bindings['feed_address']))
-
-        elif category == 'bet_matches':
-            placeholder = ''
-            if bindings['target_value'] >= 0:    # Only non‐negative values are valid.
-                placeholder = ' that ' + str(output(bindings['target_value'], 'value'))
-            if bindings['leverage']:
-                placeholder += ', leveraged {}x'.format(output(bindings['leverage'] / 5040, 'leverage'))
-            logger.info('Bet Match: {} for {} against {} for {} on {} at {}{} ({}) [{}]'.format(util.BET_TYPE_NAME[bindings['tx0_bet_type']], output(bindings['forward_quantity'], config.XCP), util.BET_TYPE_NAME[bindings['tx1_bet_type']], output(bindings['backward_quantity'], config.XCP), bindings['feed_address'], isodt(bindings['deadline']), placeholder, bindings['id'], bindings['status']))
-
         elif category == 'dividends':
             logger.info('Dividend: {} paid {} per unit of {} ({}) [{}]'.format(bindings['source'], output(bindings['quantity_per_unit'], bindings['dividend_asset']), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
@@ -288,51 +273,6 @@ def log(db, command, category, bindings):
 
         elif category == 'cancels':
             logger.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))
-
-        elif category == 'rps':
-            log_message = 'RPS: {} opens game with {} possible moves and a wager of {}'.format(bindings['source'], bindings['possible_moves'], output(bindings['wager'], 'ASP'))
-            logger.info(log_message)
-
-        elif category == 'rps_matches':
-            log_message = 'RPS Match: {} is playing a {}-moves game with {} with a wager of {} ({}) [{}]'.format(bindings['tx0_address'], bindings['possible_moves'], bindings['tx1_address'], output(bindings['wager'], 'ASP'), bindings['id'], bindings['status'])
-            logger.info(log_message)
-
-        elif category == 'rpsresolves':
-
-            if bindings['status'] == 'valid':
-                rps_matches = list(cursor.execute('''SELECT * FROM rps_matches WHERE id = ?''', (bindings['rps_match_id'],)))
-                assert len(rps_matches) == 1
-                rps_match = rps_matches[0]
-                log_message = 'RPS Resolved: {} is playing {} on a {}-moves game with {} with a wager of {} ({}) [{}]'.format(rps_match['tx0_address'], bindings['move'], rps_match['possible_moves'], rps_match['tx1_address'], output(rps_match['wager'], 'ASP'), rps_match['id'], rps_match['status'])
-            else:
-                log_message = 'RPS Resolved: {} [{}]'.format(bindings['tx_hash'], bindings['status'])
-            logger.info(log_message)
-
-        elif category == 'bet_expirations':
-            logger.info('Expired bet: {}'.format(bindings['bet_hash']))
-
-        elif category == 'bet_match_expirations':
-            logger.info('Expired Bet Match: {}'.format(bindings['bet_match_id']))
-
-        elif category == 'bet_match_resolutions':
-            # DUPE
-            cfd_type_id = util.BET_TYPE_ID['BullCFD'] + util.BET_TYPE_ID['BearCFD']
-            equal_type_id = util.BET_TYPE_ID['Equal'] + util.BET_TYPE_ID['NotEqual']
-
-            if bindings['bet_match_type_id'] == cfd_type_id:
-                if bindings['settled']:
-                    logger.info('Bet Match Settled: {} credited to the bull, {} credited to the bear, and {} credited to the feed address ({})'.format(output(bindings['bull_credit'], config.XCP), output(bindings['bear_credit'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
-                else:
-                    logger.info('Bet Match Force‐Liquidated: {} credited to the bull, {} credited to the bear, and {} credited to the feed address ({})'.format(output(bindings['bull_credit'], config.XCP), output(bindings['bear_credit'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
-
-            elif bindings['bet_match_type_id'] == equal_type_id:
-                logger.info('Bet Match Settled: {} won the pot of {}; {} credited to the feed address ({})'.format(bindings['winner'], output(bindings['escrow_less_fee'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
-
-        elif category == 'rps_expirations':
-            logger.info('Expired RPS: {}'.format(bindings['rps_hash']))
-
-        elif category == 'rps_match_expirations':
-            logger.info('Expired RPS Match: {}'.format(bindings['rps_match_id']))
 
         elif category == 'contracts':
             logger.info('New Contract: {}'.format(bindings['contract_id']))
