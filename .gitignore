@@ -1,5 +1,6 @@
 *.db*
 virt/
+virt_2/
 env
 venv
 docs/_build/*
@@ -25,6 +26,9 @@ profile.txt
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 /*.eggs
+
+/*.sol
+/webthree-umbrella*
 
 # Virtualenv folders
 /bin/
