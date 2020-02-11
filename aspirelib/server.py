@@ -163,8 +163,6 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.BACKEND_NAME = backend_name
     else:
         config.BACKEND_NAME = 'addrindex'
-    if config.BACKEND_NAME == 'jmcorgan':
-        config.BACKEND_NAME = 'addrindex'
 
     # Backend RPC host (AspireGas Core)
     if backend_connect:

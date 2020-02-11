@@ -2,6 +2,7 @@
 
 import decimal
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import config
 from aspirelib.lib import exceptions
@@ -11,7 +12,6 @@ from aspirelib.lib import util
 
 """Match {} PoW to payout {}.""".format(config.BTC, config.XCP)
 
-logger = logging.getLogger(__name__)
 D = decimal.Decimal
 ID = 60
 

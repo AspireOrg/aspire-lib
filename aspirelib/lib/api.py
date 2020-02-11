@@ -13,6 +13,7 @@ import json
 import re
 import collections
 import logging
+logger = logging.getLogger(__name__)
 from logging import handlers as logging_handlers
 import binascii
 
@@ -43,7 +44,6 @@ from aspirelib.lib.messages import publish
 from aspirelib.lib.messages import execute
 
 D = decimal.Decimal
-logger = logging.getLogger(__name__)
 
 API_TABLES = ['assets', 'balances', 'credits', 'debits',
               'broadcasts', 'proofofwork',

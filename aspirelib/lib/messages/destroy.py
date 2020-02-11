@@ -5,6 +5,7 @@
 import struct
 import json
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import util
 from aspirelib.lib import config
@@ -13,7 +14,6 @@ from aspirelib.lib import message_type
 from aspirelib.lib.script import AddressError
 from aspirelib.lib.exceptions import *
 
-logger = logging.getLogger(__name__)
 
 FORMAT = '>QQ8s'
 LENGTH = 8 + 8 + 8

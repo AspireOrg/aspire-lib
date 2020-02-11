@@ -3,6 +3,7 @@
 import struct
 import json
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import address
 from aspirelib.lib import config
@@ -10,7 +11,6 @@ from aspirelib.lib import exceptions
 from aspirelib.lib import message_type
 from aspirelib.lib import util
 
-logger = logging.getLogger(__name__)
 FORMAT = '>QQ21s'
 LENGTH = 8 + 8 + 21
 MAX_MEMO_LENGTH = 34

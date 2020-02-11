@@ -18,6 +18,7 @@ import struct
 import decimal
 import json
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import exceptions
 from aspirelib.lib import config
@@ -27,7 +28,6 @@ from aspirelib.lib import message_type
 
 
 D = decimal.Decimal
-logger = logging.getLogger(__name__)
 
 FORMAT = '>IdI'
 LENGTH = 4 + 8 + 4

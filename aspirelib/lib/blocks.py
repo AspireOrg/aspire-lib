@@ -10,6 +10,7 @@ import binascii
 import struct
 import decimal
 import logging
+logger = logging.getLogger(__name__)
 import collections
 import platform
 from Crypto.Cipher import ARC4
@@ -47,7 +48,6 @@ from aspirelib.lib.exceptions import DecodeError
 from aspirelib.lib.exceptions import BTCOnlyError
 
 D = decimal.Decimal
-logger = logging.getLogger(__name__)
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \

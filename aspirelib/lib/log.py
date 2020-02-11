@@ -9,13 +9,13 @@ import json
 import time
 import os
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import config
 from aspirelib.lib import exceptions
 from aspirelib.lib import util
 
 D = decimal.Decimal
-logger = logging.getLogger(__name__)
 
 
 class ModuleLoggingFilter(logging.Filter):

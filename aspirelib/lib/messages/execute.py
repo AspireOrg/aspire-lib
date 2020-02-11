@@ -5,6 +5,7 @@
 import struct
 import binascii
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import util
 from aspirelib.lib import config
@@ -14,7 +15,6 @@ from .scriptlib import utils
 from .scriptlib import blocks
 from .scriptlib import processblock
 
-logger = logging.getLogger(__name__)
 
 FORMAT = '>20sQQQ'
 LENGTH = 44

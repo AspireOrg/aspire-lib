@@ -5,6 +5,7 @@ import json
 import struct
 import decimal
 import logging
+logger = logging.getLogger(__name__)
 
 from aspirelib.lib import config
 from aspirelib.lib import exceptions
@@ -12,7 +13,6 @@ from aspirelib.lib import util
 from aspirelib.lib import message_type
 
 D = decimal.Decimal
-logger = logging.getLogger(__name__)
 
 FORMAT_1 = '>QQ'
 LENGTH_1 = 8 + 8

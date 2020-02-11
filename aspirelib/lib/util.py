@@ -3,6 +3,7 @@ import decimal
 import sys
 import json
 import logging
+logger = logging.getLogger(__name__)
 import apsw
 import inspect
 import requests
@@ -25,7 +26,6 @@ from aspirelib.lib import exceptions
 from aspirelib.lib.exceptions import DecodeError
 from aspirelib.lib import config
 
-logger = logging.getLogger(__name__)
 D = decimal.Decimal
 B26_DIGITS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 

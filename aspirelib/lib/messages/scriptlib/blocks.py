@@ -2,16 +2,17 @@
 
 """Based on pyethereum <https://github.com/ethereum/pyethereum>."""
 
+import logging
+logger = logging.getLogger(__name__)
+import pickle
+
+
 from aspirelib.lib import util
 from aspirelib.lib import config
 from aspirelib.lib import log
 from aspirelib.lib.messages.scriptlib import rlp
 from aspirelib.lib.messages.scriptlib import utils
 
-import logging
-import pickle
-
-logger = logging.getLogger(__name__)
 
 
 # NOTE: Not logging most of the specifics here.

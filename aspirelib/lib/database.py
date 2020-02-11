@@ -1,5 +1,6 @@
 import apsw
 import logging
+logger = logging.getLogger(__name__)
 import time
 import copy
 
@@ -8,7 +9,6 @@ from aspirelib.lib import util
 from aspirelib.lib import exceptions
 from aspirelib.lib import log
 
-logger = logging.getLogger(__name__)
 BLOCK_MESSAGES = []
 
 
