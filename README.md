@@ -1,26 +1,13 @@
-[![Build Status Travis](https://travis-ci.org/AspireOrg/aspire-lib.svg?branch=develop)](https://travis-ci.org/AspireOrg/aspire-lib)
-[![Build Status Circle](https://circleci.com/gh/AspireOrg/aspire-lib.svg?&style=shield)](https://circleci.com/gh/AspireOrg/aspire-lib)
-[![Coverage Status](https://coveralls.io/repos/AspireOrg/aspire-lib/badge.png?branch=develop)](https://coveralls.io/r/AspireOrg/aspire-lib?branch=develop)
-[![Latest Version](https://pypip.in/version/aspire-lib/badge.svg)](https://pypi.python.org/pypi/aspire-lib/)
-[![License](https://pypip.in/license/aspire-lib/badge.svg)](https://pypi.python.org/pypi/aspire-lib/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/aspireorg/aspire-server.svg?maxAge=2592000)](https://hub.docker.com/r/aspireorg/aspire-server/)
-
-
 # Description
 `aspire-lib` is the reference implementation of the [Aspire Protocol](https://aspirecrypto.com).
 
-**Note:** for the command-line interface to `aspire-lib`, see [`aspire-cli`](https://github.com/AspireOrg/aspire-cli).
-
-
-# Installation
-
-For a simple Docker-based install of the Aspire software stack, see [this guide](http://counterparty.io/docs/federated_node/).
+**Note:** for the command-line interface to `aspire-lib`(https://github.com/AspireOrg/aspire-lib), see [`aspire-cli`](https://github.com/AspireOrg/aspire-cli).
 
 
 # Manual installation
 
-Download the newest [AspireGas Core](https://github.com/AspireOrg/aspiregas/releases) and create
-a `aspiregas.conf` file with the following options:
+Download the newest [AspireGas Core](https://github.com/AspireOrg/aspire-gas/releases) and create
+an `aspiregas.conf` file with the following options:
 
 ```
 rpcuser=aspiregasrpc
@@ -154,8 +141,3 @@ A `aspire-client` configuration file looks like this:
    It does runs with `--skiptestbook=all` so it will not do the reparsing of the bootstrap files.
  - CircleCI is setup to split the tests as much as possible to make it easier to read the error reports.
    It also runs the `integration_test.test_book` tests, which reparse the bootstrap files.
-
-
-# Further Reading
-
-* [Official Project Documentation](http://counterparty.io/docs/)
