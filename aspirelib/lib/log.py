@@ -266,7 +266,7 @@ def log(db, command, category, bindings):
             logger.info('Dividend: {} paid {} per unit of {} ({}) [{}]'.format(bindings['source'], output(bindings['quantity_per_unit'], bindings['dividend_asset']), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
         elif category == 'proofofwork':
-            logger.info('POW: [{}] {} mined {} (txid {})'.format(bindings['status'], bindings['address'], output(bindings['mined'], config.XCP), bitcoinlib.core.b2lx(bindings['tx_hash'])))
+            logger.info('POW: [{}] {} mined {} (txid {})'.format(bindings['status'], bindings['address'], output(bindings['mined'], config.XCP), bindings['tx_hash']))
 
         elif category == 'cancels':
             logger.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))

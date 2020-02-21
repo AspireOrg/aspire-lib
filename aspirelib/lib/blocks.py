@@ -631,7 +631,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
                         destination = script.scriptpubkey_to_address(asm)
                     elif asm[1] == 'OP_CHECKSIG':
                         destination = script.pubkey_to_pubkeyhash(asm[0])
-                    proofofwork.parse(db, destination, vout.nValue, block_index, ctx.GetTxid())
+                    proofofwork.parse(db, destination, vout.nValue, block_index, bitcoinlib.core.b2lx(ctx.GetTxid()))
         # Ignore coinbase transactions.
         raise DecodeError('coinbase transaction')
 
