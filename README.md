@@ -1,54 +1,61 @@
 # Description
 `aspire-lib` is the reference implementation of the [Aspire Protocol](https://aspirecrypto.com).
 
+Ubuntu 16.04 Build Instructions
+-------------------
 **Note:** for the command-line interface to `aspire-lib`(https://github.com/AspireOrg/aspire-lib), see [`aspire-cli`](https://github.com/AspireOrg/aspire-cli).
 
-
-# Manual installation
-
-Download the newest [AspireGas Core](https://github.com/AspireOrg/aspire-gas/releases) and create
-an `aspiregas.conf` file with the following options:
-
+Install Python3.5.6
+=======
 ```
-rpcuser=aspiregasrpc
-rpcpassword=rpc
-server=1
-txindex=1
-addrindex=1
-rpctimeout=300
+sudo apt install -y build-essential checkinstall
+sudo apt install -y libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libssl-dev
+cd /tmp
+wget https://www.python.org/ftp/python/3.5.6/Python-3.5.6.tgz
+tar xzf Python-3.5.6.tgz
+cd Python-3.5.6
+sudo ./configure --enable-optimizations
+sudo make altinstall
 ```
 
-**Note:** you can and should replace the RPC credentials. Remember to use the changed RPC credentials throughout this document.
-
-Then, download and install `aspire-lib`:
-
+(optional) Create aspire user. (every command following this should be used as this user, run all aspire software in its own user)
 ```
-$ git clone https://github.com/AspireOrg/aspire-lib.git
-$ cd aspire-lib
-$ sudo pip3 install --upgrade -r requirements.txt
-$ sudo python3 setup.py install
+sudo adduser aspire --disabled-password
+```
+
+Setup virtualenv
+```
+cd ~
+python3.5 -m venv ./virt
+source ~/virt/bin/activate
+```
+
+Clone aspire-lib
+```
+cd ~
+source ~/virt/bin/activate
+git clone https://github.com/AspireOrg/aspire-lib.git
+cd aspire-lib
+pip install -r requirements.txt
+python setup.py install
 ```
 
 Followed by `aspire-cli`:
-
 ```
-$ git clone https://github.com/AspireOrg/aspire-cli.git
-$ cd aspire-cli
-$ sudo pip3 install --upgrade -r requirements.txt
-$ sudo python3 setup.py install
-```
-
-Note on **sudo**: both aspire-lib and aspire-server can be installed by non-sudoers. Please refer to external documentation for instructions on using pip without root access and other information related to custom install locations.
-
-
-Then, launch the daemon via:
-
-```
-$ aspire-server bootstrap
-$ aspire-server --backend-password=rpc start
+cd ~
+source ~/virt/bin/activate
+git clone https://github.com/AspireOrg/aspire-cli.git
+cd aspire-cli
+pip install -r requirements.txt
+python setup.py install
 ```
 
 # Basic Usage
+
+Everything in this section assumes you've followed the setup and install from above. Be sure to always enter your python virtualenv
+```
+source ~/virt/bin/activate
+```
 
 ## Via command-line 
 
@@ -72,7 +79,7 @@ $ aspire-server --backend-password=rpc start
 Bare usage from Python is also possible, without installing `aspire-cli`:
 
 ```
-$ python3
+python
 >>> from aspirelib import server
 >>> db = server.initialise(<options>)
 >>> server.start_all(db)
