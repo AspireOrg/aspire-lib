@@ -1,2 +1,1 @@
-include aspirelib/mainnet_burns.csv
 include aspirelib/protocol_changes.json
