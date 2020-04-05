@@ -200,15 +200,19 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
         cursor.close()
 
         if subasset_longname is not None and util.enabled('subassets'):  # Protocol change.
-            # subasset issuance is 0.25
-            fee = int(0.25 * config.UNIT)
+            # subasset issuance is 0.5 ASP
+            fee = int(0.5 * config.UNIT)
         elif len(asset) >= 13:
             fee = 0
         else:
-            fee = int(0.5 * config.UNIT)
+            # custom names are 1.0 ASP
+            fee = int(1.0 * config.UNIT)
 
         if fee and (not balances or balances[0]['quantity'] < fee):
             problems.append('insufficient funds')
+
+        # Fee for creation is 10 ASP
+        fee += int(10.0 * config.UNIT)
 
     # For SQLite3
     call_date = min(call_date, config.MAX_INT)
