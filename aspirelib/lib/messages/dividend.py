@@ -195,7 +195,10 @@ def parse(db, tx, message):
     if status == 'valid':
         # Debit.
         util.debit(db, tx['source'], dividend_asset, dividend_total, action='dividend', event=tx['tx_hash'])
-        util.debit(db, tx['source'], config.XCP, fee, action='dividend fee', event=tx['tx_hash'])
+        foundation_addy = config.FOUNDATION_ADDRESS_MAINNET
+        if config.TESTNET:
+            foundation_addy = config.FOUNDATION_ADDRESS_TESTNET
+        util.transfer(db, tx['source'], foundation_addy, config.XCP, fee, action='dividend fee', event=tx['tx_hash'])
 
         # Credit.
         for output in outputs:

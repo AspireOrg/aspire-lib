@@ -382,12 +382,10 @@ def parse(db, tx, message, message_type_id):
 
     # Debit fee.
     if status == 'valid':
-        util.debit(db, tx['source'], config.XCP, fee, action="issuance fee", event=tx['tx_hash'])
+        foundation_addy = config.FOUNDATION_ADDRESS_MAINNET
         if config.TESTNET:
             foundation_addy = config.FOUNDATION_ADDRESS_TESTNET
-        else:
-            foundation_addy = config.FOUNDATION_ADDRESS_MAINNET
-        util.credit(db, config.FOUNDATION_ADDRESS_MAINNET, config.XCP, fee, action="issuance fee", event=tx['tx_hash'])
+        util.transfer(db, tx['source'], foundation_addy, config.XCP, fee, action="issuance fee", event=tx['tx_hash'])
 
     # Lock?
     lock = False
