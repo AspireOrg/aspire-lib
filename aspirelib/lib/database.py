@@ -55,13 +55,6 @@ def exectracer(cursor, sql, bindings):
     # Record alteration in database.
     if category not in skip_tables:
         log.message(db, bindings['block_index'], command, category, bindings)
-    # Record alteration in computation of message feed hash for the block
-    if category not in skip_tables_block_messages:
-        # don't include asset_longname as part of the messages hash
-        #   until subassets are enabled
-        if category == 'issuances' and not util.enabled('subassets'):
-            if isinstance(bindings, dict) and 'asset_longname' in bindings:
-                del bindings['asset_longname']
 
         # don't include memo as part of the messages hash
         #   until enhanced_sends are enabled

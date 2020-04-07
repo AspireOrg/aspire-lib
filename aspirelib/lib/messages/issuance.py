@@ -151,7 +151,7 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
             problems.append('cannot change divisibility')
         if bool(last_issuance['callable']) != bool(callable_):
             problems.append('cannot change callability')
-        if last_issuance['call_date'] > call_date and (call_date != 0 or (block_index < 312500 and not config.TESTNET)):
+        if last_issuance['call_date'] > call_date and call_date != 0:
             problems.append('cannot advance call date')
         if last_issuance['call_price'] > call_price:
             problems.append('cannot reduce call price')
@@ -199,7 +199,7 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
         balances = cursor.fetchall()
         cursor.close()
 
-        if subasset_longname is not None and util.enabled('subassets'):  # Protocol change.
+        if subasset_longname is not None:
             # subasset issuance is 0.5 ASP
             fee = int(0.5 * config.UNIT)
         elif len(asset) >= 13:
@@ -252,24 +252,21 @@ def compose(db, source, transfer_destination, asset, quantity, divisible, descri
     cursor.close()
 
     # check subasset
-    subasset_parent = None
-    subasset_longname = None
-    if util.enabled('subassets'):  # Protocol change.
-        subasset_parent, subasset_longname = util.parse_subasset_from_asset_name(asset)
-        if subasset_longname is not None:
-            # try to find an existing subasset
-            sa_cursor = db.cursor()
-            sa_cursor.execute('''SELECT * FROM assets \
-                              WHERE (asset_longname = ?)''', (subasset_longname,))
-            assets = sa_cursor.fetchall()
-            sa_cursor.close()
-            if len(assets) > 0:
-                # this is a reissuance
-                asset = assets[0]['asset_name']
-            else:
-                # this is a new issuance
-                #   generate a random numeric asset id which will map to this subasset
-                asset = util.generate_random_asset()
+    subasset_parent, subasset_longname = util.parse_subasset_from_asset_name(asset)
+    if subasset_longname is not None:
+        # try to find an existing subasset
+        sa_cursor = db.cursor()
+        sa_cursor.execute('''SELECT * FROM assets \
+                          WHERE (asset_longname = ?)''', (subasset_longname,))
+        assets = sa_cursor.fetchall()
+        sa_cursor.close()
+        if len(assets) > 0:
+            # this is a reissuance
+            asset = assets[0]['asset_name']
+        else:
+            # this is a new issuance
+            #   generate a random numeric asset id which will map to this subasset
+            asset = util.generate_random_asset()
 
     call_date, call_price, problems, fee, description, divisible, reissuance, reissued_asset_longname = validate(db, source, transfer_destination, asset, quantity, divisible, callable_, call_date, call_price, description, subasset_parent, subasset_longname, util.CURRENT_BLOCK_INDEX)
     if problems:
@@ -386,6 +383,11 @@ def parse(db, tx, message, message_type_id):
     # Debit fee.
     if status == 'valid':
         util.debit(db, tx['source'], config.XCP, fee, action="issuance fee", event=tx['tx_hash'])
+        if config.TESTNET:
+            foundation_addy = config.FOUNDATION_ADDRESS_TESTNET
+        else:
+            foundation_addy = config.FOUNDATION_ADDRESS_MAINNET
+        util.credit(db, config.FOUNDATION_ADDRESS_MAINNET, config.XCP, fee, action="issuance fee", event=tx['tx_hash'])
 
     # Lock?
     lock = False
