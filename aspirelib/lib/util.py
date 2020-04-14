@@ -407,7 +407,7 @@ def credit(db, address, asset, quantity, action=None, event=None):
     if quantity > config.MAX_INT:
         raise CreditError('Quantity can\'t be higher than MAX_INT.')
     if asset == config.BTC:
-        raise CreditError('Cannot debit bitcoins.')
+        raise CreditError('Cannot credit aspiregas.')
 
     credit_cursor = db.cursor()
 
@@ -574,16 +574,8 @@ def xcp_created(db):
     cursor.execute('''SELECT SUM(mined) AS total FROM proofofwork WHERE (status = ?)''', ('confirmed',))
     total = list(cursor)[0]['total'] or 0
 
-    # Issuance fees.
-    cursor.execute('''SELECT SUM(fee_paid) AS total FROM issuances WHERE status = ?''', ('valid',))
-    issuance_fee_total = list(cursor)[0]['total'] or 0
-
-    # Dividend fees.
-    cursor.execute('''SELECT SUM(fee_paid) AS total FROM dividends WHERE status = ?''', ('valid',))
-    dividend_fee_total = list(cursor)[0]['total'] or 0
-
     cursor.close()
-    return total + issuance_fee_total + dividend_fee_total
+    return total
 
 
 def xcp_destroyed(db):

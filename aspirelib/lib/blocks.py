@@ -124,7 +124,7 @@ def parse_tx(db, tx):
 def parse_block(db, block_index, block_time,
                 previous_ledger_hash=None, ledger_hash=None,
                 previous_txlist_hash=None, txlist_hash=None,
-                previous_messages_hash=None):
+                previous_messages_hash=None, reparse=False):
     """Parse the block, return hash of new ledger, txlist and messages.
 
     The unused arguments `ledger_hash` and `txlist_hash` are for the test suite.
@@ -153,17 +153,26 @@ def parse_block(db, block_index, block_time,
         undolog_cursor.execute('''INSERT OR REPLACE INTO undolog_block(block_index, first_undo_index) VALUES(?,?)''', (block_index, 1,))
     undolog_cursor.close()
 
-    # Confirm proof of work
-    proofofwork.confirm(db, block_index)
-
     # Parse transactions, sorting them by type.
     cursor = db.cursor()
     cursor.execute('''SELECT * FROM transactions WHERE block_index=? ORDER BY tx_index''', (block_index,))
+
+    if reparse:
+        # During reparse make sure to check for proof of work in coinbase.
+        # TODO: Improve this, probably dont need to do this much work to parse the coinbase
+        block_hash = backend.getblockhash(block_index)
+        block_data = backend.getblock(block_hash)
+        txhash_list, raw_transactions = backend.get_tx_list(block_data)
+        for txhash, tx_raw in raw_transactions.items():
+            get_tx_info(tx_raw, db=db)
 
     txlist = []
     for tx in list(cursor):
         parse_tx(db, tx)
         txlist.append('{}{}{}{}{}{}'.format(tx['tx_hash'], tx['source'], tx['destination'], tx['btc_amount'], tx['fee'], binascii.hexlify(tx['data']).decode('UTF-8')))
+
+    # Confirm proof of work
+    proofofwork.confirm(db, block_index)
 
     cursor.close()
 
@@ -853,7 +862,8 @@ def reparse(db, block_index=None, quiet=False):
                                                                          db, block['block_index'], block['block_time'],
                                                                          previous_ledger_hash=previous_ledger_hash,
                                                                          previous_txlist_hash=previous_txlist_hash,
-                                                                         previous_messages_hash=previous_messages_hash)
+                                                                         previous_messages_hash=previous_messages_hash,
+                                                                         reparse=True)
                 if quiet and block['block_index'] % 10 == 0:  # every 10 blocks print status
                     root_logger.setLevel(logging.INFO)
                 logger.info('Block (re-parse): %s (hashes: L:%s / TX:%s / M:%s%s)' % (
@@ -1182,7 +1192,7 @@ def follow(db):
                 util.CURRENT_BLOCK_INDEX = block_index
 
                 # List the block.
-                cursor.execute('''INSERT INTO blocks(
+                cursor.execute('''INSERT or IGNORE INTO blocks(
                                     block_index,
                                     block_hash,
                                     block_time,

@@ -29,6 +29,9 @@ def exectracer(cursor, sql, bindings):
         # CREATE TRIGGER stmts may include an "insert" or "update" as part of them
         return True
 
+    if isinstance(bindings, tuple):
+        return True
+
     # Parse SQL.
     array = sql.split('(')[0].split(' ')
     command = array[0]
