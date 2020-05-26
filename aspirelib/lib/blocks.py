@@ -945,22 +945,22 @@ def list_tx(db, block_hash, block_index, block_time, tx_hash, tx_index, tx_hex=N
     return tx_index
 
 
-def kickstart(db, aspiregasd_dir):
-    if aspiregasd_dir is None:
+def kickstart(db, gaspd_dir):
+    if gaspd_dir is None:
         if platform.system() == 'Darwin':
-            aspiregasd_dir = os.path.expanduser('~/Library/Application Support/AspireGas/')
+            gaspd_dir = os.path.expanduser('~/Library/Application Support/AspireGas/')
         elif platform.system() == 'Windows':
-            aspiregasd_dir = os.path.join(os.environ['APPDATA'], 'AspireGas')
+            gaspd_dir = os.path.join(os.environ['APPDATA'], 'AspireGas')
         else:
-            aspiregasd_dir = os.path.expanduser('~/.aspiregas')
-    if not os.path.isdir(aspiregasd_dir):
-        raise Exception('AspireGas Core data directory not found at {}. Use --aspiregasd-dir parameter.'.format(aspiregasd_dir))
+            gaspd_dir = os.path.expanduser('~/.gasp')
+    if not os.path.isdir(gaspd_dir):
+        raise Exception('AspireGas Core data directory not found at {}. Use --gaspd-dir parameter.'.format(gaspd_dir))
 
     cursor = db.cursor()
 
     logger.warning('''Warning:
-- Ensure that aspiregasd is stopped.
-- You must reindex aspiregasd after the initialization is complete (restart with `-reindex=1`)
+- Ensure that gaspd is stopped.
+- You must reindex gaspd after the initialization is complete (restart with `-reindex=1`)
 - The initialization may take a while.''')
     if input('Proceed with the initialization? (y/N) : ') != 'y':
         return
@@ -969,12 +969,12 @@ def kickstart(db, aspiregasd_dir):
     start_time_total = time.time()
 
     # Get hash of last known block.
-    chain_parser = ChainstateParser(os.path.join(aspiregasd_dir, 'chainstate'))
+    chain_parser = ChainstateParser(os.path.join(gaspd_dir, 'chainstate'))
     last_hash = chain_parser.get_last_block_hash()
     chain_parser.close()
 
     # Start block parser.
-    block_parser = BlockchainParser(os.path.join(aspiregasd_dir, 'blocks'), os.path.join(aspiregasd_dir, 'blocks/index'))
+    block_parser = BlockchainParser(os.path.join(gaspd_dir, 'blocks'), os.path.join(gaspd_dir, 'blocks/index'))
 
     current_hash = last_hash
     tx_index = 0
@@ -1272,7 +1272,7 @@ def follow(db):
 
             # fetch raw for all transactions that need to be parsed
             # Sometimes the transactions can’t be found: `{'code': -5, 'message': 'No information available about transaction'}`
-            #  - is txindex enabled in AspireGasd?
+            #  - is txindex enabled in gAsp?
             #  - or was there a block found while batch feting the raw txs
             #  - or was there a double spend for w/e reason accepted into the mempool (replace-by-fee?)
             try:
@@ -1336,7 +1336,7 @@ def follow(db):
             refresh_start_time = time.time()
             # let the backend refresh it's mempool stored data
             # Sometimes the transactions can’t be found: `{'code': -5, 'message': 'No information available about transaction'}`
-            #  - is txindex enabled in AspireGasd?
+            #  - is txindex enabled in gAsp?
             #  - or was there a block found while batch feting the raw txs
             #  - or was there a double spend for w/e reason accepted into the mempool (replace-by-fee?)
             try:

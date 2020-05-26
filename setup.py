@@ -239,7 +239,7 @@ setup_options = {
     'url': 'http://aspirecrypto.com',
     'license': 'MIT',
     'description': 'Aspire Protocol Reference Implementation',
-    'keywords': 'aspire, aspiregas',
+    'keywords': 'aspire, gasp',
     'classifiers': [
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",

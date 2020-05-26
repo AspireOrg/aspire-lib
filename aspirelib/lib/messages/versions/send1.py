@@ -34,7 +34,7 @@ def unpack(db, message, block_index):
 def validate (db, source, destination, asset, quantity, block_index):
     problems = []
 
-    if asset == config.BTC: problems.append('cannot send aspiregas')  # Only for parsing.
+    if asset == config.BTC: problems.append('cannot send gasp')  # Only for parsing.
 
     if not isinstance(quantity, int):
         problems.append('quantity must be in satoshis')

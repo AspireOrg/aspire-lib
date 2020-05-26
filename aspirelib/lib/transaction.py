@@ -451,7 +451,7 @@ def construct (db, tx_info, encoding='auto',
     # Get inputs.
     multisig_inputs = not data
 
-    # Array of UTXOs, as retrieved by listunspent function from aspiregasd
+    # Array of UTXOs, as retrieved by listunspent function from gaspd
     if custom_inputs:
         use_inputs = unspent = custom_inputs
     else:

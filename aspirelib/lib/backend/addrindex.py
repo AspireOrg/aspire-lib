@@ -80,8 +80,8 @@ def rpc_batch(request_list):
     responses = collections.deque()
 
     def make_call(chunk):
-        # send a list of requests to aspiregasd to be executed
-        # note that this is list executed serially, in the same thread in aspiregasd
+        # send a list of requests to gaspd to be executed
+        # note that this is list executed serially, in the same thread in gaspd
         # e.g. see: https://github.com/bitcoin/bitcoin/blob/master/src/rpcserver.cpp#L939
         responses.extend(rpc_call(chunk))
 
@@ -240,7 +240,7 @@ def fee_per_kb(nblocks):
     :return: fee_per_kb in satoshis, or None when unable to determine
     """
 
-    # we need to loop because sometimes aspiregasd can't estimate a certain nblocks
+    # we need to loop because sometimes gaspd can't estimate a certain nblocks
     retry = 0
     feeperkb = -1
     while feeperkb == -1:

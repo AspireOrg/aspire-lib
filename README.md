@@ -126,7 +126,7 @@ The ``force`` argument can be used either in the server configuration file or pa
 A `aspire-client` configuration file looks like this:
 
 	[Default]
-	wallet-name = aspiregascore
+	wallet-name = gaspcore
 	wallet-connect = localhost
 	wallet-user = <user>
 	wallet-password = <password>

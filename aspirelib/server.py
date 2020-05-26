@@ -196,7 +196,7 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
     if backend_user:
         config.BACKEND_USER = backend_user
     else:
-        config.BACKEND_USER = 'aspiregasrpc'
+        config.BACKEND_USER = 'gasprpc'
 
     # Backend Core RPC password (AspireGas Core)
     if backend_password:

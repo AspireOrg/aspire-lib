@@ -15,7 +15,7 @@ def open_leveldb(db_dir):
         return plyvel.DB(db_dir, create_if_missing=False)
     except plyvel._plyvel.IOError as e:
         logger.info(str(e))
-        raise Exception("Ensure that aspiregasd is stopped.")
+        raise Exception("Ensure that gaspd is stopped.")
 
 class BlockchainParser():
 

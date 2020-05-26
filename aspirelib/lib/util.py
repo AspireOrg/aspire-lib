@@ -407,7 +407,7 @@ def credit(db, address, asset, quantity, action=None, event=None):
     if quantity > config.MAX_INT:
         raise CreditError('Quantity can\'t be higher than MAX_INT.')
     if asset == config.BTC:
-        raise CreditError('Cannot credit aspiregas.')
+        raise CreditError('Cannot credit gasp.')
 
     credit_cursor = db.cursor()
 

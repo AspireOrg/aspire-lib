@@ -84,7 +84,7 @@ def check_backend_state():
     cblock = backend.getblock(block_hash)
     time_behind = time.time() - cblock.nTime   # TODO: Block times are not very reliable.
     if time_behind > 60 * 60 * 2:   # Two hours.
-        raise BackendError('AspireGasd is running about {} hours behind.'.format(round(time_behind / 3600)))
+        raise BackendError('gAspd is running about {} hours behind.'.format(round(time_behind / 3600)))
     logger.debug('Backend state check passed.')
 
 
@@ -394,7 +394,7 @@ class APIStatusPoller(threading.Thread):
         while self.stop_event.is_set() is not True:
             try:
                 # Check that backend is running, communicable, and caught up with the blockchain.
-                # Check that the database has caught up with aspiregasd.
+                # Check that the database has caught up with gaspd.
                 if time.time() - self.last_database_check > 10 * 60:  # Ten minutes since last check.
                     if not config.FORCE:
                         code = 11
