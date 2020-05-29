@@ -680,7 +680,7 @@ class APIServer(threading.Thread):
 
             return {
                 'db_caught_up': caught_up,
-                'bitcoin_block_count': latestBlockIndex,
+                'gasp_block_count': latestBlockIndex,
                 'last_block': last_block,
                 'last_message_index': last_message['message_index'] if last_message else -1,
                 'running_testnet': config.TESTNET,
