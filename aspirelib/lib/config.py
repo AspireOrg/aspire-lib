@@ -56,8 +56,8 @@ ADDRESSVERSION_TESTNET = b'%'
 P2SH_ADDRESSVERSION_TESTNET = b'&'
 PRIVATEKEY_VERSION_TESTNET = b'*'
 
-ADDRESSVERSION_MAINNET = b'\t'
-P2SH_ADDRESSVERSION_MAINNET = b'\n'
+ADDRESSVERSION_MAINNET = b'&'
+P2SH_ADDRESSVERSION_MAINNET = b'a'
 PRIVATEKEY_VERSION_MAINNET = b'\x0f'  # value = struct.unpack('B', 15)
 
 MAGIC_BYTES_TESTNET = b'\xe4\xcf\xcc\xe3'
@@ -77,12 +77,12 @@ BLOCK_FIRST_MAINNET_HASH = '678d2a0d8fa8e6da234b6da33c53e919e62b92bf4234d5bad0f7
 DEFAULT_REGULAR_DUST_SIZE = 5430         # TODO: This is just a guess. I got it down to 5530 satoshis.
 DEFAULT_MULTISIG_DUST_SIZE = 7800        # <https://bitcointalk.org/index.php?topic=528023.msg7469941#msg7469941>
 DEFAULT_OP_RETURN_VALUE = 0
-DEFAULT_FEE_PER_KB = 25000               # sane/low default, also used as minimum when estimated fee is used
-ESTIMATE_FEE_PER_KB = True               # when True will use `estimatefee` from bitcoind instead of DEFAULT_FEE_PER_KB
+DEFAULT_FEE_PER_KB = 1000               # sane/low default, also used as minimum when estimated fee is used
+ESTIMATE_FEE_PER_KB = False               # when True will use `estimatefee` from bitcoind instead of DEFAULT_FEE_PER_KB
 ESTIMATE_FEE_NBLOCKS = 3
 
 # UI defaults
-DEFAULT_FEE_FRACTION_REQUIRED = .009   # 0.90%
+DEFAULT_FEE_FRACTION_REQUIRED = .0009   # 0.090%
 DEFAULT_FEE_FRACTION_PROVIDED = .01    # 1.00%
 
 
