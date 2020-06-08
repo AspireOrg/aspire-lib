@@ -632,7 +632,7 @@ def get_tx_info2(tx_hex, block_parser=None, p2sh_support=False, db=None, block_i
 
     if ctx.is_coinbase():
         # ASP Mining, pay out same as GASP pays
-        if db:
+        if db and (config.TESTNET or block_index == 1):
             for vout in ctx.vout:
                 if vout.nValue > 0:
                     asm = script.get_asm(vout.scriptPubKey)

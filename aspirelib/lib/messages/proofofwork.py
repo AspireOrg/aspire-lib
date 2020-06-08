@@ -35,6 +35,9 @@ def validate(db, address, quantity, block_index):
     if block_index is None:
         problems.append('Must include block_index')
 
+    if not config.TESTNET and block_index > 1:
+        problems.append('No more ASP after premine on mainnet')
+
     if not isinstance(quantity, int):
         problems.append('quantity must be in satoshis')
         return problems
