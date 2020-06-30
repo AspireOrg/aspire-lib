@@ -296,7 +296,7 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         config.FORCE = False
 
     # Encoding
-    config.PREFIX = b'CNTRPRTY'             # 8 bytes
+    config.PREFIX = b'ASPR'             # 4 bytes
 
     # (more) Testnet
     if config.TESTNET:

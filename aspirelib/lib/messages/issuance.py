@@ -62,13 +62,6 @@ def initialise(db):
     cursor.execute('''CREATE INDEX IF NOT EXISTS
                       source_idx ON issuances (source)
                    ''')
-
-    # Add asset_longname for sub-assets
-    #   SQLite can’t do `ALTER TABLE IF COLUMN NOT EXISTS`.
-    columns = [column['name'] for column in cursor.execute('''PRAGMA table_info(issuances)''')]
-    if 'asset_longname' not in columns:
-        cursor.execute('''ALTER TABLE issuances ADD COLUMN asset_longname TEXT''')
-
     cursor.execute('''CREATE INDEX IF NOT EXISTS
                       asset_longname_idx ON issuances (asset_longname)
                    ''')
@@ -189,7 +182,7 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
             problems.append('subasset already exists')
 
         # validate that the actual asset is numeric
-        if asset[0] != 'A':
+        if asset[:3] != 'ASP':
             problems.append('a subasset must be a numeric asset')
 
     # Check for existence of fee funds.
@@ -200,19 +193,16 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
         cursor.close()
 
         if subasset_longname is not None:
-            # subasset issuance is 0.5 ASP
-            fee = int(0.5 * config.UNIT)
+            # subasset issuance is 10 ASP
+            fee = int(10.0 * config.UNIT)
         elif len(asset) >= 13:
             fee = 0
         else:
-            # custom names are 1.0 ASP
-            fee = int(1.0 * config.UNIT)
+            # custom names are 10 ASP
+            fee = int(10.0 * config.UNIT)
 
         if fee and (not balances or balances[0]['quantity'] < fee):
             problems.append('insufficient funds')
-
-        # Fee for creation is 10 ASP
-        fee += int(10.0 * config.UNIT)
 
     # For SQLite3
     call_date = min(call_date, config.MAX_INT)
@@ -232,13 +222,11 @@ def validate(db, source, destination, asset, quantity, divisible, callable_, cal
 
 
 def compose(db, source, transfer_destination, asset, quantity, divisible, description):
-
     # Callability is deprecated, so for re‐issuances set relevant parameters
     # to old values; for first issuances, make uncallable.
     cursor = db.cursor()
-    cursor.execute('''SELECT * FROM issuances \
-                      WHERE (status = ? AND asset = ?)
-                      ORDER BY tx_index ASC''', ('valid', asset))
+    cursor.execute('''SELECT * FROM issuances WHERE (status = ? AND asset = ?) ORDER BY tx_index ASC''', ('valid', asset))
+
     issuances = cursor.fetchall()
     if issuances:
         last_issuance = issuances[-1]

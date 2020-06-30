@@ -121,12 +121,12 @@ def generate_asset_id(asset_name, block_index):
         raise exceptions.AssetNameError('too short')
 
     # Numeric asset names.
-    if asset_name[0] == 'A':
+    if asset_name[:3] == 'ASP':
         # Must be numeric.
         try:
-            asset_id = int(asset_name[1:])
+            asset_id = int(asset_name[3:])
         except ValueError:
-            raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
+            raise exceptions.AssetNameError('non‐numeric asset name starts with ‘ASP’')
 
         # Number must be in range.
         if not (26**12 + 1 <= asset_id <= 2**64 - 1):
@@ -136,8 +136,8 @@ def generate_asset_id(asset_name, block_index):
     elif len(asset_name) >= 13:
         raise exceptions.AssetNameError('long asset names must be numeric')
 
-    if asset_name[0] == 'A':
-        raise exceptions.AssetNameError('non‐numeric asset name starts with ‘A’')
+    if asset_name[:3] == 'ASP':
+        raise exceptions.AssetNameError('non‐numeric asset name starts with ‘ASP’')
 
     # Convert the Base 26 string to an integer.
     n = 0
@@ -167,7 +167,7 @@ def generate_asset_name(asset_id, block_index):
 
     if asset_id <= 2**64 - 1:
         if 26**12 + 1 <= asset_id:
-            asset_name = 'A' + str(asset_id)
+            asset_name = 'ASP' + str(asset_id)
             return asset_name
     else:
         raise exceptions.AssetIDError('too high')
@@ -293,7 +293,7 @@ def validate_subasset_parent_name(asset_name):
         raise exceptions.AssetNameError('parent asset name too short')
     if len(asset_name) >= 13:
         raise exceptions.AssetNameError('parent asset name too long')
-    if asset_name[0] == 'A':
+    if asset_name[:3] == 'ASP':
         raise exceptions.AssetNameError('parent asset name starts with ‘A’')
     for c in asset_name:
         if c not in B26_DIGITS:
@@ -324,7 +324,7 @@ def expand_subasset_longname(raw_bytes):
 
 
 def generate_random_asset():
-    return 'A' + str(random.randint(26**12 + 1, 2**64 - 1))
+    return 'ASP' + str(random.randint(26**12 + 1, 2**64 - 1))
 
 
 class DebitError (Exception):

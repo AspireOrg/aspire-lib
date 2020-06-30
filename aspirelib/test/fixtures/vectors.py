@@ -1628,7 +1628,7 @@ UNITTEST_VECTOR = {
         }],
         'compose': [{
             'in': (ADDR[0], None, 'ASSET', 1000, True, ''),
-            'error': (exceptions.AssetNameError, 'non‐numeric asset name starts with ‘A’')
+            'error': (exceptions.AssetNameError, 'non‐numeric asset name starts with ‘ASP’')
         }, {
             'in': (ADDR[0], None, 'BSSET1', 1000, True, ''),
             'error': (exceptions.AssetNameError, "('invalid character:', '1')")
@@ -3752,8 +3752,8 @@ UNITTEST_VECTOR = {
             'in': ('BCD', 308000),
             'error': (exceptions.AssetNameError, 'too short')
         }, {
-            'in': ('ABCD', 308000),
-            'error': (exceptions.AssetNameError, 'non‐numeric asset name starts with ‘A’')
+            'in': ('ASPBCD', 308000),
+            'error': (exceptions.AssetNameError, 'non‐numeric asset name starts with ‘ASP’')
         }, {
             'in': ('A{}'.format(26**12), 308000),
             'error': (exceptions.AssetNameError, 'numeric asset name not in range')
