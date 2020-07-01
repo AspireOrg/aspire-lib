@@ -14,10 +14,7 @@ from aspirelib.lib import message_type
 
 D = decimal.Decimal
 
-FORMAT_1 = '>QQ'
-LENGTH_1 = 8 + 8
-FORMAT_2 = '>QQQ'
-LENGTH_2 = 8 + 8 + 8
+FORMAT = '>QQQ'
 ID = 50
 
 
@@ -156,7 +153,7 @@ def compose(db, source, quantity_per_unit, asset, dividend_asset):
     asset_id = util.get_asset_id(db, asset, util.CURRENT_BLOCK_INDEX)
     dividend_asset_id = util.get_asset_id(db, dividend_asset, util.CURRENT_BLOCK_INDEX)
     data = message_type.pack(ID)
-    data += struct.pack(FORMAT_2, quantity_per_unit, asset_id, dividend_asset_id)
+    data += struct.pack(FORMAT, quantity_per_unit, asset_id, dividend_asset_id)
     return (source, [], data)
 
 
@@ -165,18 +162,10 @@ def parse(db, tx, message):
 
     # Unpack message.
     try:
-        if (tx['block_index'] > 288150 or config.TESTNET) and len(message) == LENGTH_2:
-            quantity_per_unit, asset_id, dividend_asset_id = struct.unpack(FORMAT_2, message)
-            asset = util.get_asset_name(db, asset_id, tx['block_index'])
-            dividend_asset = util.get_asset_name(db, dividend_asset_id, tx['block_index'])
-            status = 'valid'
-        elif len(message) == LENGTH_1:
-            quantity_per_unit, asset_id = struct.unpack(FORMAT_1, message)
-            asset = util.get_asset_name(db, asset_id, tx['block_index'])
-            dividend_asset = config.XCP
-            status = 'valid'
-        else:
-            raise exceptions.UnpackError
+        quantity_per_unit, asset_id, dividend_asset_id = struct.unpack(FORMAT, message)
+        asset = util.get_asset_name(db, asset_id, tx['block_index'])
+        dividend_asset = util.get_asset_name(db, dividend_asset_id, tx['block_index'])
+        status = 'valid'
     except(exceptions.UnpackError, exceptions.AssetNameError, struct.error):
         dividend_asset, quantity_per_unit, asset = None, None, None
         status = 'invalid: could not unpack'
