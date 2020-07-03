@@ -115,7 +115,7 @@ def validate(db, source, quantity_per_unit, asset, dividend_asset, block_index):
         if not dividend_balances or dividend_balances[0]['quantity'] < dividend_total:
             problems.append('insufficient funds ({})'.format(dividend_asset))
 
-    fee = 10
+    fee = int(10.0 * config.UNIT)
     balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, config.XCP)))
     if not balances or balances[0]['quantity'] < fee:
         problems.append('insufficient funds ({})'.format(config.XCP))
