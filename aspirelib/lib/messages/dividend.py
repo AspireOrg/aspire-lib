@@ -103,7 +103,6 @@ def validate(db, source, quantity_per_unit, asset, dividend_asset, block_index):
             continue    # A bit hackish.
 
         dividend_quantity = int(dividend_quantity)
-
         outputs.append({'address': address, 'address_quantity': address_quantity, 'dividend_quantity': dividend_quantity})
         addresses.append(address)
         dividend_total += dividend_quantity
@@ -116,13 +115,10 @@ def validate(db, source, quantity_per_unit, asset, dividend_asset, block_index):
         if not dividend_balances or dividend_balances[0]['quantity'] < dividend_total:
             problems.append('insufficient funds ({})'.format(dividend_asset))
 
-    fee = 0
-    if not problems and dividend_asset != config.BTC:
-        holder_count = len(set(addresses))
-        fee = int(0.0002 * config.UNIT * holder_count)
-        balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, config.XCP)))
-        if not balances or balances[0]['quantity'] < fee:
-            problems.append('insufficient funds ({})'.format(config.XCP))
+    fee = 10
+    balances = list(cursor.execute('''SELECT * FROM balances WHERE (address = ? AND asset = ?)''', (source, config.XCP)))
+    if not balances or balances[0]['quantity'] < fee:
+        problems.append('insufficient funds ({})'.format(config.XCP))
 
     if not problems and dividend_asset == config.XCP:
         total_cost = dividend_total + fee
@@ -176,7 +172,6 @@ def parse(db, tx, message):
     if status == 'valid':
         # For SQLite3
         quantity_per_unit = min(quantity_per_unit, config.MAX_INT)
-
         dividend_total, outputs, problems, fee = validate(db, tx['source'], quantity_per_unit, asset, dividend_asset, block_index=tx['block_index'])
         if problems:
             status = 'invalid: ' + '; '.join(problems)
