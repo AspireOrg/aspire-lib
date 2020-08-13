@@ -57,9 +57,9 @@ class LockingError(Exception):
 def get_lock():
     logger.info('Acquiring lock.')
 
-    # Cross‐platform.
+    # Cross-platform
     if os.name == 'nt' or platform.system() == 'Darwin':    # Windows or OS X
-        # Not database‐specific.
+        # Not database specific.
         socket_family = socket.AF_INET
         socket_address = ('localhost', 8999)
         error = 'Another copy of server is currently running.'
@@ -218,7 +218,7 @@ def initialise_config(database_file=None, log_file=None, api_log_file=None,
         if backend_ssl_no_verify:
             config.BACKEND_SSL_NO_VERIFY = backend_ssl_no_verify
         else:
-            config.BACKEND_SSL_NO_VERIFY = False # Default to on (don't support self‐signed certificates)
+            config.BACKEND_SSL_NO_VERIFY = False # Default to on (don't support self-signed certificates)
 
     # Backend Poll Interval
     if backend_poll_interval:

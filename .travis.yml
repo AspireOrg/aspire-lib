@@ -39,7 +39,7 @@ before_install:
 # build docker image
 - docker build -t aspire/aspire-server:$DOCKER_TAG --build-arg CLI_BRANCH="$DOCKERFILE_CLI_BRANCH" .
 
-script:
+# script:
 # run the test suite in the docker container we just made
 - docker run --entrypoint=/bin/bash aspire/aspire-server:$DOCKER_TAG -c "cd /aspire-lib/aspirelib; py.test --verbose --skiptestbook=all --cov-config=../.coveragerc --cov-report=term-missing --cov=./"
 
