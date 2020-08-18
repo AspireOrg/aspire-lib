@@ -1,0 +1,20 @@
+**Development team:**
+
+- Merge pending dev branches into `develop`
+- Update `ChangeLog.md`
+- Update `VERSION_` variables in `lib/config.py`
+- Update `protocol_changes.json` (as necessary)
+- Create `develop` PR to merge into `master` for final dev team review
+- Make sure all PR CI test runners pass
+- Merge PR into `master`
+- Tag and Sign Release (for release notes, use the relevant text from `ChangeLog.md`)
+- Rebase `gh-pages` to `master`
+- Upload (signed) package to PyPi
+	* `sudo python3 setup.py sdist build`
+	<!-- * `sudo python3 setup.py bdist_wheel build`	# Does not work with `apsw` and `ethereum-serpent` installs. -->
+	* `twine upload -s dist/$NEW_FILES`
+- Update documentation (as appropriate)
+
+**Announce:**:
+
+- Post to social media: Facebook, Twitter, etc.
