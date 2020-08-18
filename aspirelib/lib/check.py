@@ -116,17 +116,12 @@ def check_change(protocol_change, change_name):
 
 
 def software_version():
-    return
-
-    logger.warning('Update software_version() for aspire')  # Current using counterparty..
-    return
-
     if config.FORCE:
         return
     logger.debug('Checking version.')
 
     try:
-        host = 'https://counterpartyxcp.github.io/counterparty-lib/aspirelib/protocol_changes.json'
+        host = 'https://aspireexplorer.com/static/protocol_changes.json'
         response = requests.get(host, headers={'cache-control': 'no-cache'})
         versions = json.loads(response.text)
     except (requests.exceptions.ConnectionError, ConnectionRefusedError, ValueError):
