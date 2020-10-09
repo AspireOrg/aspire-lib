@@ -547,7 +547,8 @@ def holders(db, asset):
     cursor = db.cursor()
     # Balances
     cursor.execute('''SELECT * FROM balances \
-                      WHERE asset = ?''', (asset,))
+                      WHERE asset = ?
+                      ORDER BY quantity DESC''', (asset,))
     for balance in list(cursor):
         holders.append({'address': balance['address'], 'address_quantity': balance['quantity'], 'escrow': None})
 
