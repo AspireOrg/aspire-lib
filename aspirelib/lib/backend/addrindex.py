@@ -209,7 +209,7 @@ def searchrawtransactions(address, unconfirmed=False, reverse=True):
     # Get confirmed transactions.
     try:
         logger.debug('Searching raw transactions.')
-        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999, reverse])
+        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999, int(reverse)])
     except BackendRPCError as e:
         if str(e) == '404 Not Found':
             raise BackendRPCError('Unknown RPC command: `searchrawtransactions`. Please use a version of {} Core which supports an address index.'.format(config.BTC_NAME))
