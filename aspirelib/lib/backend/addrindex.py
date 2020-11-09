@@ -198,7 +198,7 @@ def refresh_unconfirmed_transactions_cache(mempool_txhash_list):
         "{:.2f}".format(cache_time, 3),
     ))
 
-def searchrawtransactions(address, unconfirmed=False):
+def searchrawtransactions(address, unconfirmed=False, reverse=True):
     # Get unconfirmed transactions.
     if unconfirmed:
         logger.debug('searchrawtransactions: Getting unconfirmed transactions.')
@@ -209,7 +209,7 @@ def searchrawtransactions(address, unconfirmed=False):
     # Get confirmed transactions.
     try:
         logger.debug('Searching raw transactions.')
-        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999])
+        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999, reverse])
     except BackendRPCError as e:
         if str(e) == '404 Not Found':
             raise BackendRPCError('Unknown RPC command: `searchrawtransactions`. Please use a version of {} Core which supports an address index.'.format(config.BTC_NAME))

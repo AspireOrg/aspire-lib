@@ -84,11 +84,11 @@ def rpc_batch(payload):
 def extract_addresses(txhash_list):
     raise NotImplementedError
 
-def searchrawtransactions(address, unconfirmed=False):
+def searchrawtransactions(address, unconfirmed=False, reverse=True):
     logger.debug('Searching raw transactions.')
 
     try:
-        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999])
+        rawtransactions = rpc('searchrawtransactions', [address, 1, 0, 9999999, reverse])
     except BackendRPCError as e:
         raise BackendRPCError(str(e))
 

@@ -560,9 +560,14 @@ class APIServer(threading.Thread):
                     else:
                         supply = util.xcp_supply(db)
 
+                    if asset == config.BTC:
+                        asset_longname = 'gAsp'
+                    if asset == config.XCP:
+                        asset_longname = 'Aspire'
+
                     assetsInfo.append({
                         'asset': asset,
-                        'asset_longname': None,
+                        'asset_longname': asset_longname,
                         'owner': None,
                         'divisible': True,
                         'locked': False,
@@ -742,7 +747,6 @@ class APIServer(threading.Thread):
 
         @dispatcher.add_method
         def get_tx_info(tx_hex, block_index=None):
-            # block_index mandatory for transactions before block 335000
             source, destination, btc_amount, fee, data = blocks.get_tx_info(tx_hex, block_index=block_index)
             return source, destination, btc_amount, fee, util.hexlify(data) if data else ''
 
