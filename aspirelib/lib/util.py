@@ -551,9 +551,33 @@ def holders(db, asset):
                       ORDER BY quantity DESC''', (asset,))
     for balance in list(cursor):
         holders.append({'address': balance['address'], 'address_quantity': balance['quantity'], 'escrow': None})
+    # Funds escrowed in orders. (Protocol change.)
+    cursor.execute('''SELECT * FROM orders \
+                      WHERE give_asset = ? AND status = ?''', (asset, 'open'))
+    for order in list(cursor):
+        holders.append({'address': order['source'], 'address_quantity': order['give_remaining'], 'escrow': order['tx_hash']})
+    # Funds escrowed in pending order matches. (Protocol change.)
+    cursor.execute('''SELECT * FROM order_matches \
+                      WHERE (forward_asset = ? AND status = ?)''', (asset, 'pending'))
+    for order_match in list(cursor):
+        holders.append({'address': order_match['tx0_address'], 'address_quantity': order_match['forward_quantity'], 'escrow': order_match['id']})
+    cursor.execute('''SELECT * FROM order_matches \
+                      WHERE (backward_asset = ? AND status = ?)''', (asset, 'pending'))
+    for order_match in list(cursor):
+        holders.append({'address': order_match['tx1_address'], 'address_quantity': order_match['backward_quantity'], 'escrow': order_match['id']})
 
     # escrow ASP
     if asset == config.XCP:
+        cursor.execute('''SELECT * FROM bets \
+                          WHERE status = ?''', ('open',))
+        for bet in list(cursor):
+            holders.append({'address': bet['source'], 'address_quantity': bet['wager_remaining'], 'escrow': bet['tx_hash']})
+        cursor.execute('''SELECT * FROM bet_matches \
+                          WHERE status = ?''', ('pending',))
+        for bet_match in list(cursor):
+            holders.append({'address': bet_match['tx0_address'], 'address_quantity': bet_match['forward_quantity'], 'escrow': bet_match['id']})
+            holders.append({'address': bet_match['tx1_address'], 'address_quantity': bet_match['backward_quantity'], 'escrow': bet_match['id']})
+
         cursor.execute('''SELECT * FROM executions WHERE status IN (?,?)''', ('valid', 'out of gas'))
         for execution in list(cursor):
             holders.append({'address': execution['source'], 'address_quantity': execution['gas_cost'], 'escrow': None})

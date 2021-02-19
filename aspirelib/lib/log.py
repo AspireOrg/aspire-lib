@@ -220,7 +220,15 @@ def log(db, command, category, bindings):
             return '<None>'
 
     if command == 'update':
-        if category == 'proofofwork':
+        if category == 'order':
+            logger.debug('Database: set status of order {} to {}.'.format(bindings['tx_hash'], bindings['status']))
+        elif category == 'bet':
+            logger.debug('Database: set status of bet {} to {}.'.format(bindings['tx_hash'], bindings['status']))
+        elif category == 'order_matches':
+            logger.debug('Database: set status of order_match {} to {}.'.format(bindings['order_match_id'], bindings['status']))
+        elif category == 'bet_matches':
+            logger.debug('Database: set status of bet_match {} to {}.'.format(bindings['bet_match_id'], bindings['status']))
+        elif category == 'proofofwork':
             logger.info('POW: block {} {}'.format(bindings['block_index'], bindings['status']))
 
         # TODO: elif category == 'balances':
@@ -236,6 +244,12 @@ def log(db, command, category, bindings):
 
         elif category == 'sends':
             logger.info('Send: {} from {} to {} ({}) [{}]'.format(output(bindings['quantity'], bindings['asset']), bindings['source'], bindings['destination'], bindings['tx_hash'], bindings['status']))
+
+        elif category == 'orders':
+            logger.info('Order: {} ordered {} for {} in {} blocks, with a provided fee of {:.8f} {} and a required fee of {:.8f} {} ({}) [{}]'.format(bindings['source'], output(bindings['give_quantity'], bindings['give_asset']), output(bindings['get_quantity'], bindings['get_asset']), bindings['expiration'], bindings['fee_provided'] / config.UNIT, config.BTC, bindings['fee_required'] / config.UNIT, config.BTC, bindings['tx_hash'], bindings['status']))
+
+        elif category == 'order_matches':
+            logger.info('Order Match: {} for {} ({}) [{}]'.format(output(bindings['forward_quantity'], bindings['forward_asset']), output(bindings['backward_quantity'], bindings['backward_asset']), bindings['id'], bindings['status']))
 
         elif category == 'issuances':
             if bindings['transfer']:
@@ -262,6 +276,17 @@ def log(db, command, category, bindings):
             else:
                 logger.info('Broadcast: ' + bindings['source'] + ' at ' + isodt(bindings['timestamp']) + ' with a fee of {}%'.format(output(D(bindings['fee_fraction_int'] / 1e8) * D(100), 'fraction')) + ' (' + bindings['tx_hash'] + ')' + ' [{}]'.format(bindings['status']))
 
+        elif category == 'bets':
+            logger.info('Bet: {} against {}, by {}, on {}'.format(output(bindings['wager_quantity'], config.XCP), output(bindings['counterwager_quantity'], config.XCP), bindings['source'], bindings['feed_address']))
+
+        elif category == 'bet_matches':
+            placeholder = ''
+            if bindings['target_value'] >= 0:    # Only non‐negative values are valid.
+                placeholder = ' that ' + str(output(bindings['target_value'], 'value'))
+            if bindings['leverage']:
+                placeholder += ', leveraged {}x'.format(output(bindings['leverage'] / 5040, 'leverage'))
+            logger.info('Bet Match: {} for {} against {} for {} on {} at {}{} ({}) [{}]'.format(util.BET_TYPE_NAME[bindings['tx0_bet_type']], output(bindings['forward_quantity'], config.XCP), util.BET_TYPE_NAME[bindings['tx1_bet_type']], output(bindings['backward_quantity'], config.XCP), bindings['feed_address'], isodt(bindings['deadline']), placeholder, bindings['id'], bindings['status']))
+
         elif category == 'dividends':
             logger.info('Dividend: {} paid {} per unit of {} ({}) [{}]'.format(bindings['source'], output(bindings['quantity_per_unit'], bindings['dividend_asset']), bindings['asset'], bindings['tx_hash'], bindings['status']))
 
@@ -270,6 +295,32 @@ def log(db, command, category, bindings):
 
         elif category == 'cancels':
             logger.info('Cancel: {} ({}) [{}]'.format(bindings['offer_hash'], bindings['tx_hash'], bindings['status']))
+
+        elif category == 'order_expirations':
+            logger.info('Expired order: {}'.format(bindings['order_hash']))
+
+        elif category == 'order_match_expirations':
+            logger.info('Expired Order Match awaiting payment: {}'.format(bindings['order_match_id']))
+
+        elif category == 'bet_expirations':
+            logger.info('Expired bet: {}'.format(bindings['bet_hash']))
+
+        elif category == 'bet_match_expirations':
+            logger.info('Expired Bet Match: {}'.format(bindings['bet_match_id']))
+
+        elif category == 'bet_match_resolutions':
+            # DUPE
+            cfd_type_id = util.BET_TYPE_ID['BullCFD'] + util.BET_TYPE_ID['BearCFD']
+            equal_type_id = util.BET_TYPE_ID['Equal'] + util.BET_TYPE_ID['NotEqual']
+
+            if bindings['bet_match_type_id'] == cfd_type_id:
+                if bindings['settled']:
+                    logger.info('Bet Match Settled: {} credited to the bull, {} credited to the bear, and {} credited to the feed address ({})'.format(output(bindings['bull_credit'], config.XCP), output(bindings['bear_credit'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
+                else:
+                    logger.info('Bet Match Force‐Liquidated: {} credited to the bull, {} credited to the bear, and {} credited to the feed address ({})'.format(output(bindings['bull_credit'], config.XCP), output(bindings['bear_credit'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
+
+            elif bindings['bet_match_type_id'] == equal_type_id:
+                logger.info('Bet Match Settled: {} won the pot of {}; {} credited to the feed address ({})'.format(bindings['winner'], output(bindings['escrow_less_fee'], config.XCP), output(bindings['fee'], config.XCP), bindings['bet_match_id']))
 
         elif category == 'contracts':
             logger.info('New Contract: {}'.format(bindings['contract_id']))

@@ -37,7 +37,10 @@ from aspirelib.lib import script
 from aspirelib.lib import message_type
 from aspirelib.lib.messages import send
 from aspirelib.lib.messages import issuance
+from aspirelib.lib.messages import order
 from aspirelib.lib.messages import broadcast
+from aspirelib.lib.messages import bet
+from aspirelib.lib.messages import cancel
 from aspirelib.lib.messages import dividend
 from aspirelib.lib.messages import proofofwork
 from aspirelib.lib.messages import publish
@@ -45,13 +48,14 @@ from aspirelib.lib.messages import execute
 
 D = decimal.Decimal
 
-API_TABLES = ['assets', 'balances', 'credits', 'debits',
-              'broadcasts', 'proofofwork',
+API_TABLES = ['assets', 'balances', 'credits', 'debits', 'bets', 'bet_matches',
+              'broadcasts', 'proofofwork', 'cancels', 'bet_expirations', 'order_expirations', 'bet_match_expirations',
+              'order_match_expirations', 'bet_match_resolutions',
               'dividends', 'issuances', 'sends',
               'mempool']
 
-API_TRANSACTIONS = ['broadcast', 'proofofwork',
-                    'dividend', 'issuance', 'send',
+API_TRANSACTIONS = [ 'bet', 'broadcast', 'proofofwork', 'cancel',
+                    'dividend', 'issuance', 'send', 'order'
                     'publish', 'execute']
 
 COMMONS_ARGS = ['encoding', 'fee_per_kb', 'regular_dust_size',
@@ -208,12 +212,19 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
             bindings.append(filter_['value'])
     # AND filters
     more_conditions = []
-    if table not in ['balances']:
-        if start_block is not None:
+    if table not in ['balances', 'order_matches', 'bet_matches']:
+        if start_block != None:
             more_conditions.append('''block_index >= ?''')
             bindings.append(start_block)
         if end_block is not None:
             more_conditions.append('''block_index <= ?''')
+            bindings.append(end_block)
+    elif table in ['order_matches', 'bet_matches']:
+        if start_block != None:
+            more_conditions.append('''tx0_block_index >= ?''')
+            bindings.append(start_block)
+        if end_block != None:
+            more_conditions.append('''tx1_block_index <= ?''')
             bindings.append(end_block)
 
     # status
@@ -224,6 +235,12 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
         more_conditions.append('''status == ?''')
         bindings.append(status)
 
+    # legacy filters
+    if not show_expired and table == 'orders':
+        #Ignore BTC orders one block early.
+        expire_index = util.CURRENT_BLOCK_INDEX + 1
+        more_conditions.append('''((give_asset == ? AND expire_index > ?) OR give_asset != ?)''')
+        bindings += [config.BTC, expire_index, config.BTC]
 
     if (len(conditions) + len(more_conditions)) > 0:
         statement += ''' WHERE'''
@@ -235,12 +252,12 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
         statement += ''' {}'''.format(''' AND '''.join(all_conditions))
 
     # ORDER BY
-    if order_by is not None:
+    if order_by != None:
         statement += ''' ORDER BY {}'''.format(order_by)
-        if order_dir is not None:
+        if order_dir != None:
             statement += ''' {}'''.format(order_dir.upper())
     # LIMIT
-    if limit:
+    if limit and limit > 0:
         statement += ''' LIMIT {}'''.format(limit)
         if offset:
             statement += ''' OFFSET {}'''.format(offset)
@@ -698,8 +715,9 @@ class APIServer(threading.Thread):
         def get_element_counts():
             counts = {}
             cursor = db.cursor()
-            for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends',
-                'issuances', 'broadcasts', 'dividends', 'proofofwork', 'messages']:
+            for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends', 'orders', 
+                'order_matches', 'issuances', 'broadcasts', 'dividends', 'proofofwork', 'bets', 'bet_matches', 'cancels',
+                'order_expirations', 'bet_expirations', 'order_match_expirations', 'bet_match_expirations', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()
                 assert len(count_list) == 1
