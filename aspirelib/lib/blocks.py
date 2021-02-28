@@ -51,7 +51,9 @@ D = decimal.Decimal
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \
-         ['broadcasts', 'proofofwork',
+         ['bet_match_resolutions', 'order_match_expirations', 'order_matches',
+         'order_expirations', 'orders', 'bet_match_expirations', 'bet_matches',
+         'bet_expirations', 'bets', 'broadcasts', 'proofofwork', 'cancels',
           'dividends', 'issuances', 'sends',
           'executions', 'storage', 'suicides', 'nonces',
           'postqueue', 'contracts', 'destructions', 'assets', 'addresses']
@@ -92,14 +94,22 @@ def parse_tx(db, tx):
         send.parse(db, tx, message)
     elif message_type_id == enhanced_send.ID and util.enabled('enhanced_sends', block_index=tx['block_index']):
         enhanced_send.parse(db, tx, message)
+    elif message_type_id == order.ID:
+        order.parse(db, tx, message)
+    elif message_type_id == btcpay.ID:
+        btcpay.parse(db, tx, message)
     elif message_type_id == issuance.ID:
         issuance.parse(db, tx, message, message_type_id)
     elif message_type_id == issuance.SUBASSET_ID and util.enabled('subassets', block_index=tx['block_index']):
         issuance.parse(db, tx, message, message_type_id)
     elif message_type_id == broadcast.ID:
         broadcast.parse(db, tx, message)
+    elif message_type_id == bet.ID:
+        bet.parse(db, tx, message)
     elif message_type_id == dividend.ID:
         dividend.parse(db, tx, message)
+    elif message_type_id == cancel.ID:
+        cancel.parse(db, tx, message)
     elif message_type_id == publish.ID and tx['block_index'] != config.MEMPOOL_BLOCK_INDEX:
         publish.parse(db, tx, message)
     elif message_type_id == execute.ID and tx['block_index'] != config.MEMPOOL_BLOCK_INDEX:
@@ -152,6 +162,10 @@ def parse_block(db, block_index, block_time,
     else:
         undolog_cursor.execute('''INSERT OR REPLACE INTO undolog_block(block_index, first_undo_index) VALUES(?,?)''', (block_index, 1,))
     undolog_cursor.close()
+
+    # Expire orders, jgoregjorgjeoe
+    order.expire(db, block_index)
+    bet.expire(db, block_index, block_time)
 
     # Parse transactions, sorting them by type.
     cursor = db.cursor()
@@ -351,11 +365,15 @@ def initialise(db):
     # Consolidated
     send.initialise(db)
     destroy.initialise(db)
+    order.initialise(db)
+    btcpay.initialise(db)
     issuance.initialise(db)
     broadcast.initialise(db)
+    bet.initialise(db)
     publish.initialise(db)
     execute.initialise(db)
     dividend.initialise(db)
+    cancel.initialise(db)
     proofofwork.initialise(db)
 
     # Messages
