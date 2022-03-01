@@ -16,6 +16,6 @@
 
 **Announce:**:
 
-- Post to [Official Forums](https://counterpartytalk.org/t/new-version-announcements-counterparty-and-counterpartyd/363)) and Slack
+- Post to [Official Forums](https://aspiretalk.org/t/new-version-announcements-aspire-and-aspired/363)) and Slack
 - Send emails on Dev announcement mailing list, main mailing list 
 - Post to social media: Facebook, Twitter, etc.
