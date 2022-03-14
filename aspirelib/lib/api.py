@@ -572,7 +572,7 @@ class APIServer(threading.Thread):
             @param message_index: A single index, or a list of one or more message indexes to retrieve.
             """
             if not isinstance(message_indexes, list):
-                message_indexes = [message_indexes]
+                message_indexes = [message_indexes,]
             for idx in message_indexes:  #make sure the data is clean
                 if not isinstance(idx, int):
                     raise APIError("All items in message_indexes are not integers")

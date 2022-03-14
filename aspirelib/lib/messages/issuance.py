@@ -9,9 +9,13 @@ import decimal
 import json
 import logging
 logger = logging.getLogger(__name__)
-D = decimal.Decimal
 
-from aspirelib.lib import (config, util, exceptions, util, message_type)
+from aspirelib.lib import config
+from aspirelib.lib import util
+from aspirelib.lib import exceptions
+from aspirelib.lib import message_type
+
+D = decimal.Decimal
 
 FORMAT_1 = '>QQ?'
 LENGTH_1 = 8 + 8 + 1
@@ -22,6 +26,7 @@ SUBASSET_FORMAT_LENGTH = 8 + 8 + 1 + 1
 ID = 20
 SUBASSET_ID = 21
 # NOTE: Pascal strings are used for storing descriptions for backwards‐compatibility.
+
 
 def initialise(db):
     cursor = db.cursor()
@@ -445,7 +450,7 @@ def parse (db, tx, message, message_type_id):
         'asset_longname': asset_longname,
     }
     if "integer overflow" not in status:
-        sql='insert into issuances values(:tx_index, :tx_hash, :block_index, :asset, :quantity, :divisible, :source, :issuer, :transfer, :callable, :call_date, :call_price, :description, :fee_paid, :locked, :status, :asset_longname)'
+        sql='insert into issuances values(:tx_index, :tx_hash, 0, :block_index, :asset, :quantity, :divisible, :source, :issuer, :transfer, :callable, :call_date, :call_price, :description, :fee_paid, :locked, :status, :asset_longname)'
         issuance_parse_cursor.execute(sql, bindings)
     else:
         logger.warn("Not storing [issuance] tx [%s]: %s" % (tx['tx_hash'], status))
