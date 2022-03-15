@@ -153,10 +153,25 @@ def sort_unspent_txouts(unspent, unconfirmed=False):
 
     return unspent
 
-
 def get_btc_supply(normalize=False):
     """returns the total supply of {}""".format(config.BTC)
     return int(100000000 * config.UNIT)
+
+def is_scriptpubkey_spendable(scriptpubkey_hex, source, multisig_inputs=False):
+    c_scriptpubkey = bitcoinlib.core.CScript(bitcoinlib.core.x(scriptpubkey_hex))
+
+    try:
+        vout_address = script.scriptpubkey_to_address(c_scriptpubkey)
+    except exceptions.DecodeError:
+        return False
+
+    if not vout_address:
+        return False
+
+    source = script.make_canonical(source)
+    if vout_address == source:
+        return True
+    return False
 
 class MempoolError(Exception):
     pass
