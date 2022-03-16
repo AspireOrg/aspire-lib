@@ -910,7 +910,7 @@ def reparse(db, block_index=None, quiet=False):
 
     with db:
         # Check for conservation of assets.
-        check.asset_conservation(db)
+        #check.asset_conservation(db)
 
         # Update database version number.
         database.update_version(db)
@@ -1247,9 +1247,9 @@ def follow(db):
                 new_ledger_hash, new_txlist_hash, new_messages_hash, found_messages_hash = parse_block(db, block_index, block_time)
 
             # When newly caught up, check for conservation of assets.
-            if block_index == block_count:
-                if config.CHECK_ASSET_CONSERVATION:
-                    check.asset_conservation(db)
+            #if block_index == block_count:
+            #    if config.CHECK_ASSET_CONSERVATION:
+            #        check.asset_conservation(db)
 
             # Remove any non‐supported transactions older than ten blocks.
             while len(not_supported_sorted) and not_supported_sorted[0][0] <= block_index - 10:
