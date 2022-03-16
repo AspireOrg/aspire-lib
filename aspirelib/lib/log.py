@@ -220,8 +220,12 @@ def log(db, command, category, bindings):
             return '<None>'
 
     if command == 'update':
-        if category == 'bet':
+        if category == 'order':
+            logger.debug('Database: set status of order {} to {}.'.format(bindings['tx_hash'], bindings['status']))
+        elif category == 'bet':
             logger.debug('Database: set status of bet {} to {}.'.format(bindings['tx_hash'], bindings['status']))
+        elif category == 'order_matches':
+            logger.debug('Database: set status of order_match {} to {}.'.format(bindings['order_match_id'], bindings['status']))
         elif category == 'bet_matches':
             logger.debug('Database: set status of bet_match {} to {}.'.format(bindings['bet_match_id'], bindings['status']))
         elif category == 'proofofwork':
@@ -240,6 +244,12 @@ def log(db, command, category, bindings):
 
         elif category == 'sends':
             logger.info('Send: {} from {} to {} ({}) [{}]'.format(output(bindings['quantity'], bindings['asset']), bindings['source'], bindings['destination'], bindings['tx_hash'], bindings['status']))
+
+        elif category == 'orders':
+            logger.info('Order: {} ordered {} for {} in {} blocks, with a provided fee of {:.8f} {} and a required fee of {:.8f} {} ({}) [{}]'.format(bindings['source'], output(bindings['give_quantity'], bindings['give_asset']), output(bindings['get_quantity'], bindings['get_asset']), bindings['expiration'], bindings['fee_provided'] / config.UNIT, config.BTC, bindings['fee_required'] / config.UNIT, config.BTC, bindings['tx_hash'], bindings['status']))
+
+        elif category == 'order_matches':
+            logger.info('Order Match: {} for {} ({}) [{}]'.format(output(bindings['forward_quantity'], bindings['forward_asset']), output(bindings['backward_quantity'], bindings['backward_asset']), bindings['id'], bindings['status']))
 
         elif category == 'btcpays':
             logger.info('{} Payment: {} paid {} to {} for order match {} ({}) [{}]'.format(config.BTC, bindings['source'], output(bindings['btc_amount'], config.BTC), bindings['destination'], bindings['order_match_id'], bindings['tx_hash'], bindings['status']))
@@ -307,6 +317,12 @@ def log(db, command, category, bindings):
             else:
                 log_message = 'RPS Resolved: {} [{}]'.format(bindings['tx_hash'], bindings['status'])
             logger.info(log_message)
+
+        elif category == 'order_expirations':
+            logger.info('Expired order: {}'.format(bindings['order_hash']))
+
+        elif category == 'order_match_expirations':
+            logger.info('Expired Order Match awaiting payment: {}'.format(bindings['order_match_id']))
 
         elif category == 'bet_expirations':
             logger.info('Expired bet: {}'.format(bindings['bet_hash']))

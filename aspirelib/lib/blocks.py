@@ -31,12 +31,14 @@ from aspirelib.lib import log
 from aspirelib.lib import database
 from aspirelib.lib import message_type
 from aspirelib.lib.messages import send
+from aspirelib.lib.messages import order
 from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
 from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
 from aspirelib.lib.messages import proofofwork
+from aspirelib.lib.messages import cancel
 from aspirelib.lib.messages import rps
 from aspirelib.lib.messages import rpsresolve
 from aspirelib.lib.messages import publish
@@ -55,9 +57,10 @@ D = decimal.Decimal
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \
-         ['bet_match_resolutions', 'bet_match_expirations', 'bet_matches',
+         ['bet_match_resolutions', 'order_match_expirations', 'order_matches',
+          'order_expirations', 'orders', 'bet_match_expirations', 'bet_matches',
           'bet_expirations', 'bets', 'broadcasts', 'btcpays', 'proofofwork',
-          'dividends', 'issuances', 'sends',
+          'cancels', 'dividends', 'issuances', 'sends',
           'rps_match_expirations', 'rps_expirations', 'rpsresolves',
           'rps_matches', 'rps', 'executions', 'storage', 'suicides', 'nonces',
           'postqueue', 'contracts', 'destructions', 'assets', 'addresses']
@@ -98,6 +101,8 @@ def parse_tx(db, tx):
         send.parse(db, tx, message)
     elif message_type_id == enhanced_send.ID and util.enabled('enhanced_sends', block_index=tx['block_index']):
         enhanced_send.parse(db, tx, message)
+    elif message_type_id == order.ID:
+        order.parse(db, tx, message)
     elif message_type_id == btcpay.ID:
         btcpay.parse(db, tx, message)
     elif message_type_id == issuance.ID:
@@ -110,6 +115,8 @@ def parse_tx(db, tx):
         bet.parse(db, tx, message)
     elif message_type_id == dividend.ID:
         dividend.parse(db, tx, message)
+    elif message_type_id == cancel.ID:
+        cancel.parse(db, tx, message)
     elif message_type_id == rps.ID:
         rps.parse(db, tx, message)
     elif message_type_id == rpsresolve.ID:
@@ -167,8 +174,9 @@ def parse_block(db, block_index, block_time,
         undolog_cursor.execute('''INSERT OR REPLACE INTO undolog_block(block_index, first_undo_index) VALUES(?,?)''', (block_index, 1,))
     undolog_cursor.close()
 
-    # Expire bets and rps.
+    # Expire orders, bets and rps.
     proofofwork.confirm(db, block_index)
+    order.expire(db, block_index)
     bet.expire(db, block_index, block_time)
     rps.expire(db, block_index)
 
@@ -370,6 +378,7 @@ def initialise(db):
     # Consolidated
     send.initialise(db)
     destroy.initialise(db)
+    order.initialise(db)
     btcpay.initialise(db)
     issuance.initialise(db)
     broadcast.initialise(db)
@@ -378,6 +387,7 @@ def initialise(db):
     execute.initialise(db)
     dividend.initialise(db)
     proofofwork.initialise(db)
+    cancel.initialise(db)
     rps.initialise(db)
     rpsresolve.initialise(db)
 
