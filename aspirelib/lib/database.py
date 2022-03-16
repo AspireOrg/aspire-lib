@@ -53,7 +53,7 @@ def exectracer(cursor, sql, bindings):
     skip_tables_block_messages = copy.copy(skip_tables)
     if command == 'update':
         # List message manually.
-        skip_tables += ['contracts', 'proofofwork']
+        skip_tables += ['bets', 'rps', 'bet_matches', 'rps_matches', 'contracts', 'proofofwork']
 
     # Record alteration in database.
     if category not in skip_tables:

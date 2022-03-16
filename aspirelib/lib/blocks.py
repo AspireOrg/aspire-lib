@@ -34,8 +34,11 @@ from aspirelib.lib.messages import send
 from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
+from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
 from aspirelib.lib.messages import proofofwork
+from aspirelib.lib.messages import rps
+from aspirelib.lib.messages import rpsresolve
 from aspirelib.lib.messages import publish
 from aspirelib.lib.messages import execute
 from aspirelib.lib.messages import destroy
@@ -52,9 +55,11 @@ D = decimal.Decimal
 
 # Order matters for FOREIGN KEY constraints.
 TABLES = ['credits', 'debits', 'messages'] + \
-         ['broadcasts', 'btcpays', 'proofofwork',
+         ['bet_match_resolutions', 'bet_match_expirations', 'bet_matches',
+          'bet_expirations', 'bets', 'broadcasts', 'btcpays', 'proofofwork',
           'dividends', 'issuances', 'sends',
-          'executions', 'storage', 'suicides', 'nonces',
+          'rps_match_expirations', 'rps_expirations', 'rpsresolves',
+          'rps_matches', 'rps', 'executions', 'storage', 'suicides', 'nonces',
           'postqueue', 'contracts', 'destructions', 'assets', 'addresses']
 
 # Compose list of tables tracked by undolog
@@ -101,8 +106,14 @@ def parse_tx(db, tx):
         issuance.parse(db, tx, message, message_type_id)
     elif message_type_id == broadcast.ID:
         broadcast.parse(db, tx, message)
+    elif message_type_id == bet.ID:
+        bet.parse(db, tx, message)
     elif message_type_id == dividend.ID:
         dividend.parse(db, tx, message)
+    elif message_type_id == rps.ID:
+        rps.parse(db, tx, message)
+    elif message_type_id == rpsresolve.ID:
+        rpsresolve.parse(db, tx, message)
     elif message_type_id == publish.ID and tx['block_index'] != config.MEMPOOL_BLOCK_INDEX:
         publish.parse(db, tx, message)
     elif message_type_id == execute.ID and tx['block_index'] != config.MEMPOOL_BLOCK_INDEX:
@@ -155,6 +166,11 @@ def parse_block(db, block_index, block_time,
     else:
         undolog_cursor.execute('''INSERT OR REPLACE INTO undolog_block(block_index, first_undo_index) VALUES(?,?)''', (block_index, 1,))
     undolog_cursor.close()
+
+    # Expire bets and rps.
+    proofofwork.confirm(db, block_index)
+    bet.expire(db, block_index, block_time)
+    rps.expire(db, block_index)
 
     # Parse transactions, sorting them by type.
     cursor = db.cursor()
@@ -357,10 +373,13 @@ def initialise(db):
     btcpay.initialise(db)
     issuance.initialise(db)
     broadcast.initialise(db)
+    bet.initialise(db)
     publish.initialise(db)
     execute.initialise(db)
     dividend.initialise(db)
     proofofwork.initialise(db)
+    rps.initialise(db)
+    rpsresolve.initialise(db)
 
     # Messages
     cursor.execute('''CREATE TABLE IF NOT EXISTS messages(

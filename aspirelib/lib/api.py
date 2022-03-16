@@ -39,21 +39,27 @@ from aspirelib.lib.messages import send
 from aspirelib.lib.messages import btcpay
 from aspirelib.lib.messages import issuance
 from aspirelib.lib.messages import broadcast
+from aspirelib.lib.messages import bet
 from aspirelib.lib.messages import dividend
 from aspirelib.lib.messages import proofofwork
+from aspirelib.lib.messages import rps
+from aspirelib.lib.messages import rpsresolve
 from aspirelib.lib.messages import publish
 from aspirelib.lib.messages import execute
 
 D = decimal.Decimal
 
-API_TABLES = ['assets', 'balances', 'credits', 'debits',
+API_TABLES = ['assets', 'balances', 'credits', 'debits', 'bets', 'bet_matches',
               'broadcasts', 'btcpays', 'proofofwork',
               'dividends', 'issuances', 'sends',
+              'bet_expirations', 'bet_match_expirations',
+              'bet_match_resolutions', 'rps',
+              'rpsresolves', 'rps_matches', 'rps_expirations', 'rps_match_expirations',
               'mempool']
 
-API_TRANSACTIONS = ['broadcast', 'btcpay', 'proofofwork',
+API_TRANSACTIONS = ['bet', 'broadcast', 'btcpay', 'proofofwork',
                     'dividend', 'issuance', 'send',
-                    'publish', 'execute']
+                    'rps', 'rpsresolve', 'publish', 'execute']
 
 COMMONS_ARGS = ['encoding', 'fee_per_kb', 'regular_dust_size',
                 'multisig_dust_size', 'op_return_value', 'pubkey',
@@ -209,12 +215,19 @@ def get_rows(db, table, filters=None, filterop='AND', order_by=None, order_dir=N
             bindings.append(filter_['value'])
     # AND filters
     more_conditions = []
-    if table not in ['balances']:
+    if table not in ['balances', 'bet_matches']:
         if start_block is not None:
             more_conditions.append('''block_index >= ?''')
             bindings.append(start_block)
         if end_block is not None:
             more_conditions.append('''block_index <= ?''')
+            bindings.append(end_block)
+    elif table in ['bet_matches']:
+        if start_block is not None:
+            more_conditions.append('''tx0_block_index >= ?''')
+            bindings.append(start_block)
+        if end_block is not None:
+            more_conditions.append('''tx1_block_index <= ?''')
             bindings.append(end_block)
 
     # status
@@ -695,8 +708,9 @@ class APIServer(threading.Thread):
             counts = {}
             cursor = db.cursor()
             for element in ['transactions', 'blocks', 'debits', 'credits', 'balances', 'sends',
-                'btcpays', 'issuances', 'broadcasts', 'dividends',
-                'proofofwork', 'messages']:
+                'btcpays', 'issuances', 'broadcasts', 'bets', 'bet_matches', 'dividends',
+                'proofofwork', 'bet_expirations',
+                'bet_match_expirations', 'messages']:
                 cursor.execute("SELECT COUNT(*) AS count FROM %s" % element)
                 count_list = cursor.fetchall()
                 assert len(count_list) == 1
