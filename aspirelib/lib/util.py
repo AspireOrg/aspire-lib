@@ -146,10 +146,14 @@ def generate_asset_id(asset_name, block_index):
     # Convert the Base 26 string to an integer.
     n = 0
     for c in asset_name:
-        n *= 26
         if c not in B26_DIGITS:
             raise exceptions.AssetNameError('invalid character:', c)
-        digit = B26_DIGITS.index(c)
+        if enabled("issuance_name_fix", block_index):
+            n *= 27
+            digit = B26_DIGITS.index(c) + 1
+        else:
+            n *= 26
+            digit = B26_DIGITS.index(c)
         n += digit
     asset_id = n
 
@@ -180,8 +184,12 @@ def generate_asset_name(asset_id, block_index):
     res = []
     n = asset_id
     while n > 0:
-        n, r = divmod(n, 26)
-        res.append(B26_DIGITS[r])
+        if enabled("issuance_name_fix", block_index):
+            n, r = divmod(n, 27)
+            res.append(B26_DIGITS[r - 1])
+        else:
+            n, r = divmod(n, 26)
+            res.append(B26_DIGITS[r])
     asset_name = ''.join(res[::-1])
 
     """
